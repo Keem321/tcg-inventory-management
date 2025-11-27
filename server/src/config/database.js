@@ -2,14 +2,14 @@
  * Database configuration and connection utilities
  */
 
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 /**
  * Connect to MongoDB database
  * @param {string} uri
  * @returns {Promise<void>}
  */
-export async function connectDatabase(uri) {
+async function connectDatabase(uri) {
 	try {
 		await mongoose.connect(uri);
 		console.log("Connected to MongoDB");
@@ -23,7 +23,7 @@ export async function connectDatabase(uri) {
  * Disconnect from MongoDB database
  * @returns {Promise<void>}
  */
-export async function disconnectDatabase() {
+async function disconnectDatabase() {
 	try {
 		await mongoose.disconnect();
 		console.log("✅ Disconnected from MongoDB");
@@ -37,6 +37,12 @@ export async function disconnectDatabase() {
  * Get database connection status
  * @returns {boolean}
  */
-export function isConnected() {
+function isConnected() {
 	return mongoose.connection.readyState === 1;
 }
+
+module.exports = {
+	connectDatabase,
+	disconnectDatabase,
+	isConnected,
+};

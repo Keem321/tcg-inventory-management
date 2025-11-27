@@ -3,7 +3,7 @@
  * Roles: employee, store-manager, partner
  */
 
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
 	{
@@ -76,9 +76,7 @@ const userSchema = new mongoose.Schema(
 	}
 );
 
-// Indexes
-userSchema.index({ username: 1 }, { unique: true });
-userSchema.index({ email: 1 }, { unique: true });
+// Indexes (username and email already have unique indexes from schema definition)
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ assignedStoreId: 1 });
 
@@ -91,4 +89,6 @@ userSchema.virtual("fullName").get(function () {
 userSchema.set("toJSON", { virtuals: true });
 userSchema.set("toObject", { virtuals: true });
 
-export const User = mongoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
+
+module.exports = { User };

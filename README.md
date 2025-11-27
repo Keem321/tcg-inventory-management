@@ -167,6 +167,26 @@ Most specific configuration takes precedence. Store Managers configure per-store
 - **Permission-Based Features**: All actions validated against user role
 - **Version Control**: Git workflow with meaningful commits
 
+## Running
+
+**Terminal 1 - Backend Server:**
+
+```powershell
+cd server
+npm run dev
+```
+
+Server runs on http://localhost:5000
+
+**Terminal 2 - Frontend Client:**
+
+```powershell
+cd client
+npm run dev
+```
+
+Client runs on http://localhost:5173
+
 ## Testing
 
 Run frontend tests:
