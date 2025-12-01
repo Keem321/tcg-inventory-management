@@ -1,7 +1,7 @@
-# TODO
+# Module Systems
 
-Make sure the frontend is using ES Modules (import and export)
-Make sure the backend is using CommonJS (const and module.exports)
+- Frontend uses **ES Modules** (import/export)
+- Backend uses **CommonJS** (require/module.exports)
 
 # React + Vite
 
