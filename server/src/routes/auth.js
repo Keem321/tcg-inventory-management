@@ -26,7 +26,7 @@ router.post("/login", async (req, res) => {
 		}
 
 		// Find user by username
-		const user = await User.findOne({ username }).populate("assignedStoreId");
+		const user = await User.findOne({ username });
 
 		if (!user) {
 			return res.status(401).json({
@@ -60,7 +60,7 @@ router.post("/login", async (req, res) => {
 		// Create session
 		req.session.userId = user._id.toString();
 		req.session.role = user.role;
-		req.session.assignedStoreId = user.assignedStoreId?._id?.toString() || null;
+		req.session.assignedStoreId = user.assignedStoreId?.toString() || null;
 
 		// Return user data (without password hash)
 		res.json({
@@ -79,9 +79,13 @@ router.post("/login", async (req, res) => {
 		});
 	} catch (error) {
 		console.error("Login error:", error);
+
+		// In development, return more detailed error
+		const isDev = process.env.NODE_ENV !== "production";
 		res.status(500).json({
 			success: false,
 			message: "An error occurred during login",
+			...(isDev && { error: error.message, stack: error.stack }),
 		});
 	}
 });
@@ -121,9 +125,7 @@ router.get("/session", async (req, res) => {
 		}
 
 		// Fetch current user data
-		const user = await User.findById(req.session.userId).populate(
-			"assignedStoreId"
-		);
+		const user = await User.findById(req.session.userId);
 
 		if (!user || !user.isActive) {
 			req.session.destroy();

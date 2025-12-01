@@ -1,7 +1,30 @@
 import { Container, Card, Badge, Button, Row, Col } from "react-bootstrap";
 import { authAPI } from "../api/auth";
+import { storeAPI } from "../api/stores";
+import { useState, useEffect } from "react";
 
 function Dashboard({ user, onLogout }) {
+	const [store, setStore] = useState(null);
+	const [loadingStore, setLoadingStore] = useState(false);
+
+	useEffect(() => {
+		const fetchStore = async () => {
+			if (user.assignedStoreId) {
+				setLoadingStore(true);
+				try {
+					const response = await storeAPI.getStore(user.assignedStoreId);
+					setStore(response.store);
+				} catch (error) {
+					console.error("Error fetching store:", error);
+				} finally {
+					setLoadingStore(false);
+				}
+			}
+		};
+
+		fetchStore();
+	}, [user.assignedStoreId]);
+
 	const handleLogout = async () => {
 		try {
 			await authAPI.logout();
@@ -23,13 +46,14 @@ function Dashboard({ user, onLogout }) {
 	};
 
 	const getRoleDescription = (role) => {
+		const storeName = store?.name || "your assigned store";
 		switch (role) {
 			case "partner":
 				return "You have full system access across all stores.";
 			case "store-manager":
-				return "You can manage your store and create inter-store transfer requests.";
+				return `You can manage ${storeName} and create inter-store transfer requests.`;
 			case "employee":
-				return "You can view and manage inventory at your assigned store.";
+				return `You can view and manage inventory at ${storeName}.`;
 			default:
 				return "";
 		}
@@ -70,10 +94,20 @@ function Dashboard({ user, onLogout }) {
 							<p className="mb-1">
 								<strong>Role:</strong> {user.role}
 							</p>
-							{user.assignedStoreId && (
+							{loadingStore ? (
+								<p className="mb-1 text-muted">Loading store...</p>
+							) : store ? (
+								<>
+									<p className="mb-1">
+										<strong>Assigned Store:</strong> {store.name}
+									</p>
+									<p className="mb-1 text-muted small">{store.fullAddress}</p>
+								</>
+							) : user.assignedStoreId ? (
+								<p className="mb-1 text-muted">Store info unavailable</p>
+							) : (
 								<p className="mb-1">
-									<strong>Assigned Store:</strong>{" "}
-									{user.assignedStoreId.name || user.assignedStoreId}
+									<strong>Access:</strong> All Stores
 								</p>
 							)}
 						</Col>
