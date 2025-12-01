@@ -1,20 +1,20 @@
 /**
- * WarehouseForm Component
- * Form for creating and editing warehouse/store information
+ * StoreForm Component
+ * Form for creating and editing store information
  */
 
 import { useState } from "react";
 import { Form, Button } from "react-bootstrap";
 
-const getInitialFormData = (mode, warehouse) => {
-	if (mode === "edit" && warehouse) {
+const getInitialFormData = (mode, store) => {
+	if (mode === "edit" && store) {
 		return {
-			name: warehouse.name || "",
-			address: warehouse.location?.address || "",
-			city: warehouse.location?.city || "",
-			state: warehouse.location?.state || "",
-			zipCode: warehouse.location?.zipCode || "",
-			maxCapacity: warehouse.maxCapacity || "",
+			name: store.name || "",
+			address: store.location?.address || "",
+			city: store.location?.city || "",
+			state: store.location?.state || "",
+			zipCode: store.location?.zipCode || "",
+			maxCapacity: store.maxCapacity || "",
 		};
 	}
 	return {
@@ -27,15 +27,15 @@ const getInitialFormData = (mode, warehouse) => {
 	};
 };
 
-const WarehouseForm = ({
+const StoreForm = ({
 	mode = "create",
-	warehouse = null,
+	store = null,
 	onSubmit,
 	onCancel,
 	loading = false,
 }) => {
 	const [formData, setFormData] = useState(() =>
-		getInitialFormData(mode, warehouse)
+		getInitialFormData(mode, store)
 	);
 	const [errors, setErrors] = useState({});
 
@@ -140,7 +140,7 @@ const WarehouseForm = ({
 	return (
 		<Form onSubmit={handleSubmit}>
 			<Form.Group className="mb-3" controlId="name">
-				<Form.Label>Warehouse Name</Form.Label>
+				<Form.Label>Store Name</Form.Label>
 				<Form.Control
 					type="text"
 					name="name"
@@ -149,7 +149,7 @@ const WarehouseForm = ({
 					onBlur={handleBlur}
 					disabled={loading}
 					isInvalid={!!errors.name}
-					placeholder="Enter warehouse name"
+					placeholder="Enter store name"
 					required
 				/>
 				<Form.Control.Feedback type="invalid">
@@ -261,7 +261,7 @@ const WarehouseForm = ({
 					{loading
 						? "Saving..."
 						: mode === "create"
-						? "Create Warehouse"
+						? "Create Store"
 						: "Save Changes"}
 				</Button>
 			</div>
@@ -269,4 +269,4 @@ const WarehouseForm = ({
 	);
 };
 
-export default WarehouseForm;
+export default StoreForm;

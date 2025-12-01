@@ -2,12 +2,12 @@ import { Container, Card, Badge, Button, Row, Col } from "react-bootstrap";
 import { authAPI } from "../api/auth";
 import { storeAPI } from "../api/stores";
 import { useState, useEffect } from "react";
-import WarehouseManagement from "./WarehouseManagement";
+import StoreManagement from "./StoreManagement";
 
 function Dashboard({ user, onLogout }) {
 	const [store, setStore] = useState(null);
 	const [loadingStore, setLoadingStore] = useState(false);
-	const [currentView, setCurrentView] = useState("dashboard"); // 'dashboard' or 'warehouses'
+	const [currentView, setCurrentView] = useState("dashboard"); // 'dashboard' or 'stores'
 
 	useEffect(() => {
 		const fetchStore = async () => {
@@ -61,10 +61,10 @@ function Dashboard({ user, onLogout }) {
 		}
 	};
 
-	// If viewing warehouse management, render that instead
-	if (currentView === "warehouses") {
+	// If viewing store management, render that instead
+	if (currentView === "stores") {
 		return (
-			<WarehouseManagement
+			<StoreManagement
 				user={user}
 				onUnauthorized={() => setCurrentView("dashboard")}
 				onBack={() => setCurrentView("dashboard")}
@@ -132,18 +132,16 @@ function Dashboard({ user, onLogout }) {
 			<Card>
 				<Card.Body>
 					<Card.Title>Role-Based Features</Card.Title>
-
 					{(user.role === "partner" || user.role === "store-manager") && (
 						<div className="mb-3">
 							<Button
 								variant="primary"
-								onClick={() => setCurrentView("warehouses")}
+								onClick={() => setCurrentView("stores")}
 							>
-								Manage Warehouses
+								Manage Stores
 							</Button>
 						</div>
-					)}
-
+					)}{" "}
 					{user.role === "partner" && (
 						<div>
 							<h5 className="text-success">Partner Access</h5>
@@ -157,7 +155,6 @@ function Dashboard({ user, onLogout }) {
 							</ul>
 						</div>
 					)}
-
 					{user.role === "store-manager" && (
 						<div>
 							<h5 className="text-primary">Store Manager Access</h5>
@@ -171,7 +168,6 @@ function Dashboard({ user, onLogout }) {
 							</ul>
 						</div>
 					)}
-
 					{user.role === "employee" && (
 						<div>
 							<h5 className="text-secondary">Employee Access</h5>

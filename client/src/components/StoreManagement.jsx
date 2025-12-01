@@ -1,6 +1,6 @@
 /**
- * WarehouseManagement Component
- * Main page for managing warehouses with role-based access
+ * StoreManagement Component
+ * Main page for managing stores with role-based access
  */
 
 import { useState, useEffect } from "react";
@@ -16,19 +16,19 @@ import {
 	Badge,
 } from "react-bootstrap";
 import { storeAPI } from "../api/stores";
-import WarehouseForm from "./WarehouseForm";
+import StoreForm from "./StoreForm";
 
-const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
+const StoreManagement = ({ user, onUnauthorized, onBack }) => {
 	const [stores, setStores] = useState([]);
 	const [activeTab, setActiveTab] = useState("");
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
 	const [showForm, setShowForm] = useState(false);
 	const [formMode, setFormMode] = useState("create");
-	const [selectedWarehouse, setSelectedWarehouse] = useState(null);
+	const [selectedStore, setSelectedStore] = useState(null);
 	const [formLoading, setFormLoading] = useState(false);
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
-	const [warehouseToDelete, setWarehouseToDelete] = useState(null);
+	const [storeToDelete, setStoreToDelete] = useState(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
 
 	const filterStoresByRole = (allStores) => {
@@ -62,7 +62,7 @@ const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
 			}
 		} catch (err) {
 			console.error("Error fetching stores:", err);
-			setError(err.response?.data?.message || "Error loading warehouses");
+			setError(err.response?.data?.message || "Error loading stores");
 		} finally {
 			setLoading(false);
 		}
@@ -81,41 +81,39 @@ const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [user, onUnauthorized]);
 
-	const handleAddWarehouse = () => {
+	const handleAddStore = () => {
 		setFormMode("create");
-		setSelectedWarehouse(null);
+		setSelectedStore(null);
 		setShowForm(true);
 	};
 
-	const handleEditWarehouse = (warehouse) => {
+	const handleEditStore = (store) => {
 		setFormMode("edit");
-		setSelectedWarehouse(warehouse);
+		setSelectedStore(store);
 		setShowForm(true);
 	};
 
-	const handleDeleteClick = (warehouse) => {
-		setWarehouseToDelete(warehouse);
+	const handleDeleteClick = (store) => {
+		setStoreToDelete(store);
 		setShowDeleteModal(true);
 	};
 
 	const handleDeleteConfirm = async () => {
-		if (!warehouseToDelete) return;
+		if (!storeToDelete) return;
 
 		try {
 			setDeleteLoading(true);
-			const response = await storeAPI.deleteStore(warehouseToDelete._id);
+			const response = await storeAPI.deleteStore(storeToDelete._id);
 
 			if (response.success) {
 				setShowDeleteModal(false);
-				setWarehouseToDelete(null);
+				setStoreToDelete(null);
 				await fetchStores(); // Refresh list
 			}
 		} catch (err) {
-			console.error("Error deleting warehouse:", err);
+			console.error("Error deleting store:", err);
 			setError(
-				err.response?.data?.message ||
-					err.message ||
-					"Failed to delete warehouse"
+				err.response?.data?.message || err.message || "Failed to delete store"
 			);
 			setShowDeleteModal(false);
 		} finally {
@@ -133,11 +131,11 @@ const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
 				if (response.success) {
 					setShowForm(false);
 					await fetchStores();
-					setActiveTab(response.store._id); // Switch to newly created warehouse
+					setActiveTab(response.store._id); // Switch to newly created store
 				}
 			} else {
 				const response = await storeAPI.updateStore(
-					selectedWarehouse._id,
+					selectedStore._id,
 					formData
 				);
 				if (response.success) {
@@ -146,8 +144,8 @@ const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
 				}
 			}
 		} catch (err) {
-			console.error("Error saving warehouse:", err);
-			setError(err.response?.data?.message || "Failed to save warehouse");
+			console.error("Error saving store:", err);
+			setError(err.response?.data?.message || "Failed to save store");
 		} finally {
 			setFormLoading(false);
 		}
@@ -155,7 +153,7 @@ const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
 
 	const handleFormCancel = () => {
 		setShowForm(false);
-		setSelectedWarehouse(null);
+		setSelectedStore(null);
 		setError("");
 	};
 
@@ -192,10 +190,10 @@ const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
 			)}
 
 			<div className="d-flex justify-content-between align-items-center mb-4">
-				<h2>Warehouse Management</h2>
+				<h2>Store Management</h2>
 				{user.role === "partner" && !showForm && (
-					<Button variant="primary" onClick={handleAddWarehouse}>
-						Add New Warehouse
+					<Button variant="primary" onClick={handleAddStore}>
+						Add New Store
 					</Button>
 				)}
 			</div>
@@ -210,13 +208,13 @@ const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
 			<Modal show={showForm} onHide={handleFormCancel} size="lg">
 				<Modal.Header closeButton>
 					<Modal.Title>
-						{formMode === "create" ? "Create New Warehouse" : "Edit Warehouse"}
+						{formMode === "create" ? "Create New Store" : "Edit Store"}
 					</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
-					<WarehouseForm
+					<StoreForm
 						mode={formMode}
-						warehouse={selectedWarehouse}
+						store={selectedStore}
 						onSubmit={handleFormSubmit}
 						onCancel={handleFormCancel}
 						loading={formLoading}
@@ -225,7 +223,7 @@ const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
 			</Modal>
 
 			{accessibleStores.length === 0 ? (
-				<Alert variant="info">No warehouses available.</Alert>
+				<Alert variant="info">No stores available.</Alert>
 			) : (
 				<Tabs
 					activeKey={activeTab}
@@ -248,9 +246,9 @@ const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
 												<Button
 													variant="outline-primary"
 													size="sm"
-													onClick={() => handleEditWarehouse(store)}
+													onClick={() => handleEditStore(store)}
 												>
-													Edit Warehouse
+													Edit Store
 												</Button>
 											)}
 											{user.role === "partner" && (
@@ -259,7 +257,7 @@ const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
 													size="sm"
 													onClick={() => handleDeleteClick(store)}
 												>
-													Delete Warehouse
+													Delete Store
 												</Button>
 											)}
 										</div>
@@ -303,7 +301,7 @@ const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
 											store.maxCapacity
 										) >= 90 && (
 											<Alert variant="danger" className="mt-2 mb-0">
-												<strong>Warning:</strong> Warehouse is at{" "}
+												<strong>Warning:</strong> Store is at{" "}
 												{calculateCapacityPercentage(
 													store.currentCapacity,
 													store.maxCapacity
@@ -339,9 +337,8 @@ const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
 					<Modal.Title>Confirm Deletion</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
-					Are you sure you want to delete{" "}
-					<strong>{warehouseToDelete?.name}</strong>? This action cannot be
-					undone.
+					Are you sure you want to delete <strong>{storeToDelete?.name}</strong>
+					? This action cannot be undone.
 				</Modal.Body>
 				<Modal.Footer>
 					<Button
@@ -364,4 +361,4 @@ const WarehouseManagement = ({ user, onUnauthorized, onBack }) => {
 	);
 };
 
-export default WarehouseManagement;
+export default StoreManagement;

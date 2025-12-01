@@ -1,13 +1,13 @@
 /**
- * Warehouse Form Component Tests
+ * Store Form Component Tests
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import WarehouseForm from "../../components/WarehouseForm";
+import StoreForm from "../../components/StoreForm";
 
-describe("WarehouseForm Component", () => {
+describe("StoreForm Component", () => {
 	const mockOnSubmit = vi.fn();
 	const mockOnCancel = vi.fn();
 
@@ -16,16 +16,16 @@ describe("WarehouseForm Component", () => {
 	});
 
 	describe("Create Mode", () => {
-		it("should render empty form for creating new warehouse", () => {
+		it("should render empty form for creating new store", () => {
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
 				/>
 			);
 
-			expect(screen.getByLabelText("Warehouse Name")).toHaveValue("");
+			expect(screen.getByLabelText("Store Name")).toHaveValue("");
 			expect(screen.getByLabelText("Street Address")).toHaveValue("");
 			expect(screen.getByLabelText("City")).toHaveValue("");
 			expect(screen.getByLabelText("State")).toHaveValue("");
@@ -33,9 +33,9 @@ describe("WarehouseForm Component", () => {
 			expect(screen.getByLabelText("Max Capacity")).toHaveValue(null);
 		});
 
-		it("should show Create Warehouse button in create mode", () => {
+		it("should show Create Store button in create mode", () => {
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -43,30 +43,28 @@ describe("WarehouseForm Component", () => {
 			);
 
 			expect(
-				screen.getByRole("button", { name: "Create Warehouse" })
+				screen.getByRole("button", { name: "Create Store" })
 			).toBeInTheDocument();
 		});
 
 		it("should submit form with valid data", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
 				/>
 			);
 
-			await user.type(screen.getByLabelText("Warehouse Name"), "Test Store");
+			await user.type(screen.getByLabelText("Store Name"), "Test Store");
 			await user.type(screen.getByLabelText("Street Address"), "123 Test St");
 			await user.type(screen.getByLabelText("City"), "Test City");
 			await user.type(screen.getByLabelText("State"), "IL");
 			await user.type(screen.getByLabelText("Zip Code"), "12345");
 			await user.type(screen.getByLabelText("Max Capacity"), "1000");
 
-			await user.click(
-				screen.getByRole("button", { name: "Create Warehouse" })
-			);
+			await user.click(screen.getByRole("button", { name: "Create Store" }));
 
 			await waitFor(() => {
 				expect(mockOnSubmit).toHaveBeenCalledWith({
@@ -84,7 +82,7 @@ describe("WarehouseForm Component", () => {
 	});
 
 	describe("Edit Mode", () => {
-		const existingWarehouse = {
+		const existingstore = {
 			_id: "store1",
 			name: "Existing Store",
 			location: {
@@ -99,17 +97,15 @@ describe("WarehouseForm Component", () => {
 
 		it("should render form pre-filled with existing data", () => {
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="edit"
-					warehouse={existingWarehouse}
+					store={existingstore}
 				/>
 			);
 
-			expect(screen.getByLabelText("Warehouse Name")).toHaveValue(
-				"Existing Store"
-			);
+			expect(screen.getByLabelText("Store Name")).toHaveValue("Existing Store");
 			expect(screen.getByLabelText("Street Address")).toHaveValue(
 				"456 Main St"
 			);
@@ -121,11 +117,11 @@ describe("WarehouseForm Component", () => {
 
 		it("should show Save Changes button in edit mode", () => {
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="edit"
-					warehouse={existingWarehouse}
+					store={existingstore}
 				/>
 			);
 
@@ -137,11 +133,11 @@ describe("WarehouseForm Component", () => {
 		it("should submit updated data", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="edit"
-					warehouse={existingWarehouse}
+					store={existingstore}
 				/>
 			);
 
@@ -167,17 +163,17 @@ describe("WarehouseForm Component", () => {
 	});
 
 	describe("Form Validation", () => {
-		it("should require warehouse name", async () => {
+		it("should require Store name", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
 				/>
 			);
 
-			const nameInput = screen.getByLabelText("Warehouse Name");
+			const nameInput = screen.getByLabelText("Store Name");
 			await user.click(nameInput);
 			await user.tab(); // Blur the field
 
@@ -190,7 +186,7 @@ describe("WarehouseForm Component", () => {
 		it("should require address", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -210,7 +206,7 @@ describe("WarehouseForm Component", () => {
 		it("should require city", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -230,7 +226,7 @@ describe("WarehouseForm Component", () => {
 		it("should require state", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -250,7 +246,7 @@ describe("WarehouseForm Component", () => {
 		it("should validate state is 2 characters", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -270,7 +266,7 @@ describe("WarehouseForm Component", () => {
 		it("should require zip code", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -290,7 +286,7 @@ describe("WarehouseForm Component", () => {
 		it("should validate zip code format", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -308,7 +304,7 @@ describe("WarehouseForm Component", () => {
 		it("should require max capacity", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -328,7 +324,7 @@ describe("WarehouseForm Component", () => {
 		it("should validate max capacity is positive", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -348,7 +344,7 @@ describe("WarehouseForm Component", () => {
 		it("should validate max capacity is a number", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -371,7 +367,7 @@ describe("WarehouseForm Component", () => {
 		it("should call onCancel when Cancel button clicked", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -387,14 +383,14 @@ describe("WarehouseForm Component", () => {
 		it("should not submit form when Cancel is clicked", async () => {
 			const user = userEvent.setup();
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
 				/>
 			);
 
-			await user.type(screen.getByLabelText("Warehouse Name"), "Test Store");
+			await user.type(screen.getByLabelText("Store Name"), "Test Store");
 			await user.click(screen.getByRole("button", { name: "Cancel" }));
 
 			expect(mockOnCancel).toHaveBeenCalled();
@@ -405,7 +401,7 @@ describe("WarehouseForm Component", () => {
 	describe("Loading State", () => {
 		it("should disable submit button when loading", () => {
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -418,7 +414,7 @@ describe("WarehouseForm Component", () => {
 
 		it("should disable cancel button when loading", () => {
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -431,7 +427,7 @@ describe("WarehouseForm Component", () => {
 
 		it("should disable all inputs when loading", () => {
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
@@ -439,7 +435,7 @@ describe("WarehouseForm Component", () => {
 				/>
 			);
 
-			expect(screen.getByLabelText("Warehouse Name")).toBeDisabled();
+			expect(screen.getByLabelText("Store Name")).toBeDisabled();
 			expect(screen.getByLabelText("Street Address")).toBeDisabled();
 			expect(screen.getByLabelText("City")).toBeDisabled();
 			expect(screen.getByLabelText("State")).toBeDisabled();
@@ -449,11 +445,11 @@ describe("WarehouseForm Component", () => {
 
 		it("should show Saving... text in edit mode when loading", () => {
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="edit"
-					warehouse={{
+					store={{
 						name: "Test",
 						location: {
 							address: "123 St",
@@ -476,14 +472,14 @@ describe("WarehouseForm Component", () => {
 	describe("Accessibility", () => {
 		it("should have proper labels for all inputs", () => {
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
 				/>
 			);
 
-			expect(screen.getByLabelText("Warehouse Name")).toHaveAttribute("id");
+			expect(screen.getByLabelText("Store Name")).toHaveAttribute("id");
 			expect(screen.getByLabelText("Street Address")).toHaveAttribute("id");
 			expect(screen.getByLabelText("City")).toHaveAttribute("id");
 			expect(screen.getByLabelText("State")).toHaveAttribute("id");
@@ -493,14 +489,14 @@ describe("WarehouseForm Component", () => {
 
 		it("should mark required fields", () => {
 			render(
-				<WarehouseForm
+				<StoreForm
 					onSubmit={mockOnSubmit}
 					onCancel={mockOnCancel}
 					mode="create"
 				/>
 			);
 
-			expect(screen.getByLabelText("Warehouse Name")).toBeRequired();
+			expect(screen.getByLabelText("Store Name")).toBeRequired();
 			expect(screen.getByLabelText("Street Address")).toBeRequired();
 			expect(screen.getByLabelText("City")).toBeRequired();
 			expect(screen.getByLabelText("State")).toBeRequired();

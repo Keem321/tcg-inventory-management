@@ -1,11 +1,11 @@
 /**
- * Warehouse Management Component Tests
+ * Store Management Component Tests
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import WarehouseManagement from "../../components/WarehouseManagement";
+import StoreManagement from "../../components/StoreManagement";
 import { storeAPI } from "../../api/stores";
 
 // Mock the stores API
@@ -19,7 +19,7 @@ vi.mock("../../api/stores", () => ({
 	},
 }));
 
-describe("WarehouseManagement Component", () => {
+describe("StoreManagement Component", () => {
 	const mockStores = [
 		{
 			_id: "store1",
@@ -93,11 +93,11 @@ describe("WarehouseManagement Component", () => {
 	});
 
 	describe("Access Control", () => {
-		it("should redirect employees away from warehouse management", () => {
+		it("should redirect employees away from store management", () => {
 			const mockOnUnauthorized = vi.fn();
 
 			render(
-				<WarehouseManagement
+				<StoreManagement
 					user={employeeUser}
 					onUnauthorized={mockOnUnauthorized}
 				/>
@@ -106,29 +106,29 @@ describe("WarehouseManagement Component", () => {
 			expect(mockOnUnauthorized).toHaveBeenCalled();
 		});
 
-		it("should allow partners to access warehouse management", async () => {
+		it("should allow partners to access store management", async () => {
 			storeAPI.getStores.mockResolvedValue({
 				success: true,
 				stores: mockStores,
 			});
 
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Warehouse Management")).toBeInTheDocument();
+				expect(screen.getByText("Store Management")).toBeInTheDocument();
 			});
 		});
 
-		it("should allow managers to access warehouse management", async () => {
+		it("should allow managers to access store management", async () => {
 			storeAPI.getStores.mockResolvedValue({
 				success: true,
 				stores: mockStores,
 			});
 
-			render(<WarehouseManagement user={managerUser} />);
+			render(<StoreManagement user={managerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Warehouse Management")).toBeInTheDocument();
+				expect(screen.getByText("Store Management")).toBeInTheDocument();
 			});
 		});
 	});
@@ -142,7 +142,7 @@ describe("WarehouseManagement Component", () => {
 		});
 
 		it("should render tabs for all stores for partners", async () => {
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
 				expect(
@@ -158,7 +158,7 @@ describe("WarehouseManagement Component", () => {
 		});
 
 		it("should display first store by default", async () => {
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
 				expect(
@@ -169,7 +169,7 @@ describe("WarehouseManagement Component", () => {
 
 		it("should switch to different store when tab clicked", async () => {
 			const user = userEvent.setup();
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
 				expect(
@@ -187,11 +187,11 @@ describe("WarehouseManagement Component", () => {
 			});
 		});
 
-		it("should show Add Warehouse button for partners", async () => {
-			render(<WarehouseManagement user={partnerUser} />);
+		it("should show Add Store button for partners", async () => {
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Add New Warehouse")).toBeInTheDocument();
+				expect(screen.getByText("Add New Store")).toBeInTheDocument();
 			});
 		});
 	});
@@ -205,7 +205,7 @@ describe("WarehouseManagement Component", () => {
 		});
 
 		it("should only show assigned store tab for managers", async () => {
-			render(<WarehouseManagement user={managerUser} />);
+			render(<StoreManagement user={managerUser} />);
 
 			await waitFor(() => {
 				expect(
@@ -222,16 +222,16 @@ describe("WarehouseManagement Component", () => {
 			).not.toBeInTheDocument();
 		});
 
-		it("should not show Add Warehouse button for managers", async () => {
-			render(<WarehouseManagement user={managerUser} />);
+		it("should not show Add Store button for managers", async () => {
+			render(<StoreManagement user={managerUser} />);
 
 			await waitFor(() => {
-				expect(screen.queryByText("Add New Warehouse")).not.toBeInTheDocument();
+				expect(screen.queryByText("Add New Store")).not.toBeInTheDocument();
 			});
 		});
 	});
 
-	describe("Warehouse Details Display", () => {
+	describe("Store Details Display", () => {
 		beforeEach(() => {
 			storeAPI.getStores.mockResolvedValue({
 				success: true,
@@ -239,8 +239,8 @@ describe("WarehouseManagement Component", () => {
 			});
 		});
 
-		it("should display warehouse name", async () => {
-			render(<WarehouseManagement user={partnerUser} />);
+		it("should display store name", async () => {
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
 				expect(
@@ -249,8 +249,8 @@ describe("WarehouseManagement Component", () => {
 			});
 		});
 
-		it("should display warehouse address", async () => {
-			render(<WarehouseManagement user={partnerUser} />);
+		it("should display store address", async () => {
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
 				expect(
@@ -260,7 +260,7 @@ describe("WarehouseManagement Component", () => {
 		});
 
 		it("should display capacity information", async () => {
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
 				expect(screen.getAllByText(/Current Capacity:/)[0]).toBeInTheDocument();
@@ -271,7 +271,7 @@ describe("WarehouseManagement Component", () => {
 		});
 
 		it("should display capacity percentage", async () => {
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
 				expect(screen.getAllByText(/50%/)[0]).toBeInTheDocument();
@@ -292,7 +292,7 @@ describe("WarehouseManagement Component", () => {
 				stores: highCapacityStores,
 			});
 
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
 				const warningElement = screen.getByText(/85%/);
@@ -314,7 +314,7 @@ describe("WarehouseManagement Component", () => {
 				stores: criticalCapacityStores,
 			});
 
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
 				const dangerElements = screen.getAllByText(/95%/);
@@ -324,7 +324,7 @@ describe("WarehouseManagement Component", () => {
 		});
 	});
 
-	describe("Edit Warehouse - Partners", () => {
+	describe("Edit Store - Partners", () => {
 		beforeEach(() => {
 			storeAPI.getStores.mockResolvedValue({
 				success: true,
@@ -333,38 +333,38 @@ describe("WarehouseManagement Component", () => {
 		});
 
 		it("should show Edit button for partners", async () => {
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getAllByText("Edit Warehouse")[0]).toBeInTheDocument();
+				expect(screen.getAllByText("Edit Store")[0]).toBeInTheDocument();
 			});
 		});
 
 		it("should open edit form when Edit button clicked", async () => {
 			const user = userEvent.setup();
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getAllByText("Edit Warehouse")[0]).toBeInTheDocument();
+				expect(screen.getAllByText("Edit Store")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getAllByText("Edit Warehouse")[0]);
+			await user.click(screen.getAllByText("Edit Store")[0]);
 
 			await waitFor(() => {
 				expect(screen.getByRole("dialog")).toBeInTheDocument();
-				expect(screen.getByLabelText("Warehouse Name")).toBeInTheDocument();
+				expect(screen.getByLabelText("Store Name")).toBeInTheDocument();
 			});
 		});
 
-		it("should pre-fill form with current warehouse data", async () => {
+		it("should pre-fill form with current store data", async () => {
 			const user = userEvent.setup();
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getAllByText("Edit Warehouse")[0]).toBeInTheDocument();
+				expect(screen.getAllByText("Edit Store")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getAllByText("Edit Warehouse")[0]);
+			await user.click(screen.getAllByText("Edit Store")[0]);
 
 			// Wait for modal to appear first
 			await waitFor(() => {
@@ -373,7 +373,7 @@ describe("WarehouseManagement Component", () => {
 
 			// Then check the form values
 			await waitFor(() => {
-				expect(screen.getByLabelText("Warehouse Name")).toHaveValue(
+				expect(screen.getByLabelText("Store Name")).toHaveValue(
 					"Downtown TCG Store"
 				);
 				expect(screen.getByLabelText("Street Address")).toHaveValue(
@@ -383,20 +383,20 @@ describe("WarehouseManagement Component", () => {
 			});
 		});
 
-		it("should submit updated warehouse data", async () => {
+		it("should submit updated store data", async () => {
 			const user = userEvent.setup();
 			storeAPI.updateStore.mockResolvedValue({
 				success: true,
 				store: { ...mockStores[0], maxCapacity: 1200 },
 			});
 
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getAllByText("Edit Warehouse")[0]).toBeInTheDocument();
+				expect(screen.getAllByText("Edit Store")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getAllByText("Edit Warehouse")[0]);
+			await user.click(screen.getAllByText("Edit Store")[0]);
 
 			await waitFor(() => {
 				expect(screen.getByLabelText("Max Capacity")).toBeInTheDocument();
@@ -423,7 +423,7 @@ describe("WarehouseManagement Component", () => {
 		});
 	});
 
-	describe("Edit Warehouse - Managers", () => {
+	describe("Edit Store - Managers", () => {
 		beforeEach(() => {
 			storeAPI.getStores.mockResolvedValue({
 				success: true,
@@ -432,10 +432,10 @@ describe("WarehouseManagement Component", () => {
 		});
 
 		it("should show Edit button for managers on their store", async () => {
-			render(<WarehouseManagement user={managerUser} />);
+			render(<StoreManagement user={managerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Edit Warehouse")).toBeInTheDocument();
+				expect(screen.getByText("Edit Store")).toBeInTheDocument();
 			});
 		});
 
@@ -446,13 +446,13 @@ describe("WarehouseManagement Component", () => {
 				store: { ...mockStores[0], maxCapacity: 1100 },
 			});
 
-			render(<WarehouseManagement user={managerUser} />);
+			render(<StoreManagement user={managerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Edit Warehouse")).toBeInTheDocument();
+				expect(screen.getByText("Edit Store")).toBeInTheDocument();
 			});
 
-			await user.click(screen.getByText("Edit Warehouse"));
+			await user.click(screen.getByText("Edit Store"));
 
 			const capacityInput = await screen.findByLabelText("Max Capacity");
 			await user.clear(capacityInput);
@@ -466,7 +466,7 @@ describe("WarehouseManagement Component", () => {
 		});
 	});
 
-	describe("Delete Warehouse - Partners Only", () => {
+	describe("Delete Store - Partners Only", () => {
 		beforeEach(() => {
 			storeAPI.getStores.mockResolvedValue({
 				success: true,
@@ -475,30 +475,30 @@ describe("WarehouseManagement Component", () => {
 		});
 
 		it("should show Delete button for partners", async () => {
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getAllByText("Delete Warehouse")[0]).toBeInTheDocument();
+				expect(screen.getAllByText("Delete Store")[0]).toBeInTheDocument();
 			});
 		});
 
 		it("should not show Delete button for managers", async () => {
-			render(<WarehouseManagement user={managerUser} />);
+			render(<StoreManagement user={managerUser} />);
 
 			await waitFor(() => {
-				expect(screen.queryByText("Delete Warehouse")).not.toBeInTheDocument();
+				expect(screen.queryByText("Delete Store")).not.toBeInTheDocument();
 			});
 		});
 
 		it("should show confirmation dialog when Delete clicked", async () => {
 			const user = userEvent.setup();
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getAllByText("Delete Warehouse")[0]).toBeInTheDocument();
+				expect(screen.getAllByText("Delete Store")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getAllByText("Delete Warehouse")[0]);
+			await user.click(screen.getAllByText("Delete Store")[0]);
 
 			await waitFor(() => {
 				expect(screen.getByText(/Are you sure/)).toBeInTheDocument();
@@ -513,13 +513,13 @@ describe("WarehouseManagement Component", () => {
 
 		it("should cancel deletion when Cancel clicked", async () => {
 			const user = userEvent.setup();
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getAllByText("Delete Warehouse")[0]).toBeInTheDocument();
+				expect(screen.getAllByText("Delete Store")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getAllByText("Delete Warehouse")[0]);
+			await user.click(screen.getAllByText("Delete Store")[0]);
 			await user.click(screen.getByRole("button", { name: "Cancel" }));
 
 			await waitFor(() => {
@@ -529,20 +529,20 @@ describe("WarehouseManagement Component", () => {
 			expect(storeAPI.deleteStore).not.toHaveBeenCalled();
 		});
 
-		it("should delete warehouse when confirmed", async () => {
+		it("should delete store when confirmed", async () => {
 			const user = userEvent.setup();
 			storeAPI.deleteStore.mockResolvedValue({
 				success: true,
 				message: "Store deleted successfully",
 			});
 
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getAllByText("Delete Warehouse")[0]).toBeInTheDocument();
+				expect(screen.getAllByText("Delete Store")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getAllByText("Delete Warehouse")[0]);
+			await user.click(screen.getAllByText("Delete Store")[0]);
 			await user.click(screen.getByRole("button", { name: "Confirm Delete" }));
 
 			await waitFor(() => {
@@ -558,10 +558,10 @@ describe("WarehouseManagement Component", () => {
 				stores: mockStores,
 			});
 
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getAllByText("Delete Warehouse")[0]).toBeInTheDocument();
+				expect(screen.getAllByText("Delete Store")[0]).toBeInTheDocument();
 			});
 
 			// Mock updated stores list without deleted store
@@ -570,7 +570,7 @@ describe("WarehouseManagement Component", () => {
 				stores: mockStores.slice(1),
 			});
 
-			await user.click(screen.getAllByText("Delete Warehouse")[0]);
+			await user.click(screen.getAllByText("Delete Store")[0]);
 			await user.click(screen.getByRole("button", { name: "Confirm Delete" }));
 
 			await waitFor(() => {
@@ -579,7 +579,7 @@ describe("WarehouseManagement Component", () => {
 		});
 	});
 
-	describe("Add Warehouse - Partners Only", () => {
+	describe("Add Store - Partners Only", () => {
 		beforeEach(() => {
 			storeAPI.getStores.mockResolvedValue({
 				success: true,
@@ -587,23 +587,23 @@ describe("WarehouseManagement Component", () => {
 			});
 		});
 
-		it("should open create form when Add Warehouse clicked", async () => {
+		it("should open create form when Add Store clicked", async () => {
 			const user = userEvent.setup();
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Add New Warehouse")).toBeInTheDocument();
+				expect(screen.getByText("Add New Store")).toBeInTheDocument();
 			});
 
-			await user.click(screen.getByText("Add New Warehouse"));
+			await user.click(screen.getByText("Add New Store"));
 
 			await waitFor(() => {
 				expect(screen.getByRole("dialog")).toBeInTheDocument();
-				expect(screen.getByLabelText("Warehouse Name")).toHaveValue("");
+				expect(screen.getByLabelText("Store Name")).toHaveValue("");
 			});
 		});
 
-		it("should submit new warehouse data", async () => {
+		it("should submit new store data", async () => {
 			const user = userEvent.setup();
 			const newStore = {
 				_id: "store4",
@@ -623,16 +623,16 @@ describe("WarehouseManagement Component", () => {
 				store: newStore,
 			});
 
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Add New Warehouse")).toBeInTheDocument();
+				expect(screen.getByText("Add New Store")).toBeInTheDocument();
 			});
 
-			await user.click(screen.getByText("Add New Warehouse"));
+			await user.click(screen.getByText("Add New Store"));
 
 			await user.type(
-				screen.getByLabelText("Warehouse Name"),
+				screen.getByLabelText("Store Name"),
 				"Eastside TCG Store"
 			);
 			await user.type(screen.getByLabelText("Street Address"), "321 Elm St");
@@ -641,9 +641,7 @@ describe("WarehouseManagement Component", () => {
 			await user.type(screen.getByLabelText("Zip Code"), "62704");
 			await user.type(screen.getByLabelText("Max Capacity"), "1800");
 
-			await user.click(
-				screen.getByRole("button", { name: "Create Warehouse" })
-			);
+			await user.click(screen.getByRole("button", { name: "Create Store" }));
 
 			await waitFor(() => {
 				expect(storeAPI.createStore).toHaveBeenCalledWith({
@@ -664,7 +662,7 @@ describe("WarehouseManagement Component", () => {
 		it("should display error message when stores fail to load", async () => {
 			storeAPI.getStores.mockRejectedValue(new Error("Network error"));
 
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
 				expect(screen.getByText(/error loading/i)).toBeInTheDocument();
@@ -681,13 +679,13 @@ describe("WarehouseManagement Component", () => {
 				new Error("Cannot delete store with assigned users")
 			);
 
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getAllByText("Delete Warehouse")[0]).toBeInTheDocument();
+				expect(screen.getAllByText("Delete Store")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getAllByText("Delete Warehouse")[0]);
+			await user.click(screen.getAllByText("Delete Store")[0]);
 			await user.click(screen.getByRole("button", { name: "Confirm Delete" }));
 
 			await waitFor(() => {
@@ -702,7 +700,7 @@ describe("WarehouseManagement Component", () => {
 				() => new Promise(() => {}) // Never resolves
 			);
 
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			expect(screen.getByText(/Loading/i)).toBeInTheDocument();
 		});
@@ -717,13 +715,13 @@ describe("WarehouseManagement Component", () => {
 				() => new Promise((resolve) => setTimeout(resolve, 100))
 			);
 
-			render(<WarehouseManagement user={partnerUser} />);
+			render(<StoreManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getAllByText("Edit Warehouse")[0]).toBeInTheDocument();
+				expect(screen.getAllByText("Edit Store")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getAllByText("Edit Warehouse")[0]);
+			await user.click(screen.getAllByText("Edit Store")[0]);
 			await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
 			expect(screen.getByRole("button", { name: /Saving/i })).toBeDisabled();
