@@ -106,7 +106,7 @@ describe("WarehouseManagement Component", () => {
 			expect(mockOnUnauthorized).toHaveBeenCalled();
 		});
 
-		it("should allow partners to access warehouse management", () => {
+		it("should allow partners to access warehouse management", async () => {
 			storeAPI.getStores.mockResolvedValue({
 				success: true,
 				stores: mockStores,
@@ -114,10 +114,12 @@ describe("WarehouseManagement Component", () => {
 
 			render(<WarehouseManagement user={partnerUser} />);
 
-			expect(screen.getByText("Warehouse Management")).toBeInTheDocument();
+			await waitFor(() => {
+				expect(screen.getByText("Warehouse Management")).toBeInTheDocument();
+			});
 		});
 
-		it("should allow managers to access warehouse management", () => {
+		it("should allow managers to access warehouse management", async () => {
 			storeAPI.getStores.mockResolvedValue({
 				success: true,
 				stores: mockStores,
@@ -125,7 +127,9 @@ describe("WarehouseManagement Component", () => {
 
 			render(<WarehouseManagement user={managerUser} />);
 
-			expect(screen.getByText("Warehouse Management")).toBeInTheDocument();
+			await waitFor(() => {
+				expect(screen.getByText("Warehouse Management")).toBeInTheDocument();
+			});
 		});
 	});
 
@@ -141,9 +145,15 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Downtown TCG Store")).toBeInTheDocument();
-				expect(screen.getByText("Westside TCG Store")).toBeInTheDocument();
-				expect(screen.getByText("Northside TCG Store")).toBeInTheDocument();
+				expect(
+					screen.getByRole("tab", { name: "Downtown TCG Store" })
+				).toBeInTheDocument();
+				expect(
+					screen.getByRole("tab", { name: "Westside TCG Store" })
+				).toBeInTheDocument();
+				expect(
+					screen.getByRole("tab", { name: "Northside TCG Store" })
+				).toBeInTheDocument();
 			});
 		});
 
@@ -162,11 +172,13 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Downtown TCG Store")).toBeInTheDocument();
+				expect(
+					screen.getByRole("tab", { name: "Downtown TCG Store" })
+				).toBeInTheDocument();
 			});
 
 			// Click on second tab
-			await user.click(screen.getByText("Westside TCG Store"));
+			await user.click(screen.getByRole("tab", { name: "Westside TCG Store" }));
 
 			await waitFor(() => {
 				expect(
@@ -179,7 +191,7 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Add Warehouse")).toBeInTheDocument();
+				expect(screen.getByText("Add New Warehouse")).toBeInTheDocument();
 			});
 		});
 	});
@@ -196,19 +208,25 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={managerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Downtown TCG Store")).toBeInTheDocument();
+				expect(
+					screen.getByRole("tab", { name: "Downtown TCG Store" })
+				).toBeInTheDocument();
 			});
 
 			// Should NOT show other stores as tabs
-			expect(screen.queryByText("Westside TCG Store")).not.toBeInTheDocument();
-			expect(screen.queryByText("Northside TCG Store")).not.toBeInTheDocument();
+			expect(
+				screen.queryByRole("tab", { name: "Westside TCG Store" })
+			).not.toBeInTheDocument();
+			expect(
+				screen.queryByRole("tab", { name: "Northside TCG Store" })
+			).not.toBeInTheDocument();
 		});
 
 		it("should not show Add Warehouse button for managers", async () => {
 			render(<WarehouseManagement user={managerUser} />);
 
 			await waitFor(() => {
-				expect(screen.queryByText("Add Warehouse")).not.toBeInTheDocument();
+				expect(screen.queryByText("Add New Warehouse")).not.toBeInTheDocument();
 			});
 		});
 	});
@@ -245,10 +263,10 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText(/Current Capacity:/)).toBeInTheDocument();
-				expect(screen.getByText(/500/)).toBeInTheDocument();
-				expect(screen.getByText(/Max Capacity:/)).toBeInTheDocument();
-				expect(screen.getByText(/1000/)).toBeInTheDocument();
+				expect(screen.getAllByText(/Current Capacity:/)[0]).toBeInTheDocument();
+				expect(screen.getAllByText(/500/)[0]).toBeInTheDocument();
+				expect(screen.getAllByText(/Max Capacity:/)[0]).toBeInTheDocument();
+				expect(screen.getAllByText(/1000/)[0]).toBeInTheDocument();
 			});
 		});
 
@@ -256,7 +274,7 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText(/50%/)).toBeInTheDocument();
+				expect(screen.getAllByText(/50%/)[0]).toBeInTheDocument();
 			});
 		});
 
@@ -278,7 +296,7 @@ describe("WarehouseManagement Component", () => {
 
 			await waitFor(() => {
 				const warningElement = screen.getByText(/85%/);
-				expect(warningElement).toHaveClass("text-warning");
+				expect(warningElement).toHaveClass("bg-warning");
 			});
 		});
 
@@ -299,8 +317,9 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				const dangerElement = screen.getByText(/95%/);
-				expect(dangerElement).toHaveClass("text-danger");
+				const dangerElements = screen.getAllByText(/95%/);
+				// First element should be the Badge with bg-danger class
+				expect(dangerElements[0]).toHaveClass("bg-danger");
 			});
 		});
 	});
@@ -317,7 +336,7 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Edit Warehouse")).toBeInTheDocument();
+				expect(screen.getAllByText("Edit Warehouse")[0]).toBeInTheDocument();
 			});
 		});
 
@@ -326,10 +345,10 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Edit Warehouse")).toBeInTheDocument();
+				expect(screen.getAllByText("Edit Warehouse")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getByText("Edit Warehouse"));
+			await user.click(screen.getAllByText("Edit Warehouse")[0]);
 
 			await waitFor(() => {
 				expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -342,16 +361,24 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Edit Warehouse")).toBeInTheDocument();
+				expect(screen.getAllByText("Edit Warehouse")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getByText("Edit Warehouse"));
+			await user.click(screen.getAllByText("Edit Warehouse")[0]);
 
+			// Wait for modal to appear first
+			await waitFor(() => {
+				expect(screen.getByRole("dialog")).toBeInTheDocument();
+			});
+
+			// Then check the form values
 			await waitFor(() => {
 				expect(screen.getByLabelText("Warehouse Name")).toHaveValue(
 					"Downtown TCG Store"
 				);
-				expect(screen.getByLabelText("Address")).toHaveValue("123 Main St");
+				expect(screen.getByLabelText("Street Address")).toHaveValue(
+					"123 Main St"
+				);
 				expect(screen.getByLabelText("Max Capacity")).toHaveValue(1000);
 			});
 		});
@@ -366,10 +393,10 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Edit Warehouse")).toBeInTheDocument();
+				expect(screen.getAllByText("Edit Warehouse")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getByText("Edit Warehouse"));
+			await user.click(screen.getAllByText("Edit Warehouse")[0]);
 
 			await waitFor(() => {
 				expect(screen.getByLabelText("Max Capacity")).toBeInTheDocument();
@@ -451,7 +478,7 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Delete Warehouse")).toBeInTheDocument();
+				expect(screen.getAllByText("Delete Warehouse")[0]).toBeInTheDocument();
 			});
 		});
 
@@ -468,10 +495,10 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Delete Warehouse")).toBeInTheDocument();
+				expect(screen.getAllByText("Delete Warehouse")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getByText("Delete Warehouse"));
+			await user.click(screen.getAllByText("Delete Warehouse")[0]);
 
 			await waitFor(() => {
 				expect(screen.getByText(/Are you sure/)).toBeInTheDocument();
@@ -489,10 +516,10 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Delete Warehouse")).toBeInTheDocument();
+				expect(screen.getAllByText("Delete Warehouse")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getByText("Delete Warehouse"));
+			await user.click(screen.getAllByText("Delete Warehouse")[0]);
 			await user.click(screen.getByRole("button", { name: "Cancel" }));
 
 			await waitFor(() => {
@@ -512,10 +539,10 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Delete Warehouse")).toBeInTheDocument();
+				expect(screen.getAllByText("Delete Warehouse")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getByText("Delete Warehouse"));
+			await user.click(screen.getAllByText("Delete Warehouse")[0]);
 			await user.click(screen.getByRole("button", { name: "Confirm Delete" }));
 
 			await waitFor(() => {
@@ -534,7 +561,7 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Delete Warehouse")).toBeInTheDocument();
+				expect(screen.getAllByText("Delete Warehouse")[0]).toBeInTheDocument();
 			});
 
 			// Mock updated stores list without deleted store
@@ -543,7 +570,7 @@ describe("WarehouseManagement Component", () => {
 				stores: mockStores.slice(1),
 			});
 
-			await user.click(screen.getByText("Delete Warehouse"));
+			await user.click(screen.getAllByText("Delete Warehouse")[0]);
 			await user.click(screen.getByRole("button", { name: "Confirm Delete" }));
 
 			await waitFor(() => {
@@ -565,10 +592,10 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Add Warehouse")).toBeInTheDocument();
+				expect(screen.getByText("Add New Warehouse")).toBeInTheDocument();
 			});
 
-			await user.click(screen.getByText("Add Warehouse"));
+			await user.click(screen.getByText("Add New Warehouse"));
 
 			await waitFor(() => {
 				expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -599,16 +626,16 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Add Warehouse")).toBeInTheDocument();
+				expect(screen.getByText("Add New Warehouse")).toBeInTheDocument();
 			});
 
-			await user.click(screen.getByText("Add Warehouse"));
+			await user.click(screen.getByText("Add New Warehouse"));
 
 			await user.type(
 				screen.getByLabelText("Warehouse Name"),
 				"Eastside TCG Store"
 			);
-			await user.type(screen.getByLabelText("Address"), "321 Elm St");
+			await user.type(screen.getByLabelText("Street Address"), "321 Elm St");
 			await user.type(screen.getByLabelText("City"), "Springfield");
 			await user.type(screen.getByLabelText("State"), "IL");
 			await user.type(screen.getByLabelText("Zip Code"), "62704");
@@ -657,10 +684,10 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Delete Warehouse")).toBeInTheDocument();
+				expect(screen.getAllByText("Delete Warehouse")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getByText("Delete Warehouse"));
+			await user.click(screen.getAllByText("Delete Warehouse")[0]);
 			await user.click(screen.getByRole("button", { name: "Confirm Delete" }));
 
 			await waitFor(() => {
@@ -693,10 +720,10 @@ describe("WarehouseManagement Component", () => {
 			render(<WarehouseManagement user={partnerUser} />);
 
 			await waitFor(() => {
-				expect(screen.getByText("Edit Warehouse")).toBeInTheDocument();
+				expect(screen.getAllByText("Edit Warehouse")[0]).toBeInTheDocument();
 			});
 
-			await user.click(screen.getByText("Edit Warehouse"));
+			await user.click(screen.getAllByText("Edit Warehouse")[0]);
 			await user.click(screen.getByRole("button", { name: "Save Changes" }));
 
 			expect(screen.getByRole("button", { name: /Saving/i })).toBeDisabled();

@@ -3,12 +3,13 @@
  * Tests for warehouse management endpoints with role-based access control
  */
 
-const { describe, it, expect, beforeEach, afterEach } = require("vitest");
-const request = require("supertest");
-const express = require("express");
-const session = require("express-session");
-const Store = require("../../src/models/Store");
-const User = require("../../src/models/User");
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import request from "supertest";
+import express from "express";
+import session from "express-session";
+import { Store } from "../../src/models/Store.js";
+import { User } from "../../src/models/User.js";
+import "../setup.js"; // Import test setup
 
 describe("Store Routes - Warehouse Management", () => {
 	let app;
@@ -55,7 +56,7 @@ describe("Store Routes - Warehouse Management", () => {
 		partnerUser = await User.create({
 			username: "partner1",
 			email: "partner@tcg.com",
-			password: "hashedpassword",
+			passwordHash: "hashedpassword",
 			firstName: "Partner",
 			lastName: "User",
 			role: "partner",
@@ -64,7 +65,7 @@ describe("Store Routes - Warehouse Management", () => {
 		managerUser = await User.create({
 			username: "manager1",
 			email: "manager@tcg.com",
-			password: "hashedpassword",
+			passwordHash: "hashedpassword",
 			firstName: "Manager",
 			lastName: "User",
 			role: "store-manager",
@@ -74,7 +75,7 @@ describe("Store Routes - Warehouse Management", () => {
 		employeeUser = await User.create({
 			username: "employee1",
 			email: "employee@tcg.com",
-			password: "hashedpassword",
+			passwordHash: "hashedpassword",
 			firstName: "Employee",
 			lastName: "User",
 			role: "employee",
@@ -92,10 +93,6 @@ describe("Store Routes - Warehouse Management", () => {
 			})
 		);
 
-		// Import and use the store routes
-		const storeRoutes = require("../../src/routes/stores");
-		app.use("/api/stores", storeRoutes);
-
 		// Helper middleware to simulate authenticated sessions
 		app.use((req, res, next) => {
 			if (req.headers["x-test-user-id"]) {
@@ -103,8 +100,11 @@ describe("Store Routes - Warehouse Management", () => {
 			}
 			next();
 		});
-	});
 
+		// Import and use the store routes
+		const { default: storeRoutes } = await import("../../src/routes/stores.js");
+		app.use("/api/stores", storeRoutes);
+	});
 	describe("GET /api/stores - List All Warehouses", () => {
 		it("should allow partners to view all stores", async () => {
 			const response = await request(app)
@@ -136,7 +136,7 @@ describe("Store Routes - Warehouse Management", () => {
 
 			expect(response.status).toBe(403);
 			expect(response.body.success).toBe(false);
-			expect(response.body.message).toContain("access");
+			expect(response.body.message).toContain("permission");
 		});
 
 		it("should deny access to unauthenticated users", async () => {

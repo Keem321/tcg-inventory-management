@@ -69,6 +69,6 @@ storeSchema.virtual("fullAddress").get(function () {
 storeSchema.set("toJSON", { virtuals: true });
 storeSchema.set("toObject", { virtuals: true });
 
-const Store = mongoose.model("Store", storeSchema);
+const Store = mongoose.models.Store || mongoose.model("Store", storeSchema);
 
 module.exports = { Store };

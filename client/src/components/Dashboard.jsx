@@ -2,10 +2,12 @@ import { Container, Card, Badge, Button, Row, Col } from "react-bootstrap";
 import { authAPI } from "../api/auth";
 import { storeAPI } from "../api/stores";
 import { useState, useEffect } from "react";
+import WarehouseManagement from "./WarehouseManagement";
 
 function Dashboard({ user, onLogout }) {
 	const [store, setStore] = useState(null);
 	const [loadingStore, setLoadingStore] = useState(false);
+	const [currentView, setCurrentView] = useState("dashboard"); // 'dashboard' or 'warehouses'
 
 	useEffect(() => {
 		const fetchStore = async () => {
@@ -59,6 +61,18 @@ function Dashboard({ user, onLogout }) {
 		}
 	};
 
+	// If viewing warehouse management, render that instead
+	if (currentView === "warehouses") {
+		return (
+			<WarehouseManagement
+				user={user}
+				onUnauthorized={() => setCurrentView("dashboard")}
+				onBack={() => setCurrentView("dashboard")}
+			/>
+		);
+	}
+
+	// Otherwise render dashboard
 	return (
 		<Container className="py-5">
 			<Row className="mb-4">
@@ -118,6 +132,17 @@ function Dashboard({ user, onLogout }) {
 			<Card>
 				<Card.Body>
 					<Card.Title>Role-Based Features</Card.Title>
+
+					{(user.role === "partner" || user.role === "store-manager") && (
+						<div className="mb-3">
+							<Button
+								variant="primary"
+								onClick={() => setCurrentView("warehouses")}
+							>
+								Manage Warehouses
+							</Button>
+						</div>
+					)}
 
 					{user.role === "partner" && (
 						<div>

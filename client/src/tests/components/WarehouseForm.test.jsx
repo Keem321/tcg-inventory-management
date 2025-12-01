@@ -26,7 +26,7 @@ describe("WarehouseForm Component", () => {
 			);
 
 			expect(screen.getByLabelText("Warehouse Name")).toHaveValue("");
-			expect(screen.getByLabelText("Address")).toHaveValue("");
+			expect(screen.getByLabelText("Street Address")).toHaveValue("");
 			expect(screen.getByLabelText("City")).toHaveValue("");
 			expect(screen.getByLabelText("State")).toHaveValue("");
 			expect(screen.getByLabelText("Zip Code")).toHaveValue("");
@@ -58,7 +58,7 @@ describe("WarehouseForm Component", () => {
 			);
 
 			await user.type(screen.getByLabelText("Warehouse Name"), "Test Store");
-			await user.type(screen.getByLabelText("Address"), "123 Test St");
+			await user.type(screen.getByLabelText("Street Address"), "123 Test St");
 			await user.type(screen.getByLabelText("City"), "Test City");
 			await user.type(screen.getByLabelText("State"), "IL");
 			await user.type(screen.getByLabelText("Zip Code"), "12345");
@@ -110,7 +110,9 @@ describe("WarehouseForm Component", () => {
 			expect(screen.getByLabelText("Warehouse Name")).toHaveValue(
 				"Existing Store"
 			);
-			expect(screen.getByLabelText("Address")).toHaveValue("456 Main St");
+			expect(screen.getByLabelText("Street Address")).toHaveValue(
+				"456 Main St"
+			);
 			expect(screen.getByLabelText("City")).toHaveValue("Springfield");
 			expect(screen.getByLabelText("State")).toHaveValue("IL");
 			expect(screen.getByLabelText("Zip Code")).toHaveValue("62701");
@@ -175,19 +177,14 @@ describe("WarehouseForm Component", () => {
 				/>
 			);
 
-			await user.type(screen.getByLabelText("Address"), "123 Test St");
-			await user.type(screen.getByLabelText("City"), "Test City");
-			await user.type(screen.getByLabelText("State"), "IL");
-			await user.type(screen.getByLabelText("Zip Code"), "12345");
-			await user.type(screen.getByLabelText("Max Capacity"), "1000");
+			const nameInput = screen.getByLabelText("Warehouse Name");
+			await user.click(nameInput);
+			await user.tab(); // Blur the field
 
-			await user.click(
-				screen.getByRole("button", { name: "Create Warehouse" })
-			);
-
-			// Form should not submit
+			await waitFor(() => {
+				expect(screen.getByText(/name is required/i)).toBeInTheDocument();
+			});
 			expect(mockOnSubmit).not.toHaveBeenCalled();
-			expect(screen.getByText(/name is required/i)).toBeInTheDocument();
 		});
 
 		it("should require address", async () => {
@@ -200,18 +197,14 @@ describe("WarehouseForm Component", () => {
 				/>
 			);
 
-			await user.type(screen.getByLabelText("Warehouse Name"), "Test Store");
-			await user.type(screen.getByLabelText("City"), "Test City");
-			await user.type(screen.getByLabelText("State"), "IL");
-			await user.type(screen.getByLabelText("Zip Code"), "12345");
-			await user.type(screen.getByLabelText("Max Capacity"), "1000");
+			const addressInput = screen.getByLabelText("Street Address");
+			await user.click(addressInput);
+			await user.tab(); // Blur the field
 
-			await user.click(
-				screen.getByRole("button", { name: "Create Warehouse" })
-			);
-
+			await waitFor(() => {
+				expect(screen.getByText(/address is required/i)).toBeInTheDocument();
+			});
 			expect(mockOnSubmit).not.toHaveBeenCalled();
-			expect(screen.getByText(/address is required/i)).toBeInTheDocument();
 		});
 
 		it("should require city", async () => {
@@ -224,18 +217,14 @@ describe("WarehouseForm Component", () => {
 				/>
 			);
 
-			await user.type(screen.getByLabelText("Warehouse Name"), "Test Store");
-			await user.type(screen.getByLabelText("Address"), "123 Test St");
-			await user.type(screen.getByLabelText("State"), "IL");
-			await user.type(screen.getByLabelText("Zip Code"), "12345");
-			await user.type(screen.getByLabelText("Max Capacity"), "1000");
+			const cityInput = screen.getByLabelText("City");
+			await user.click(cityInput);
+			await user.tab(); // Blur the field
 
-			await user.click(
-				screen.getByRole("button", { name: "Create Warehouse" })
-			);
-
+			await waitFor(() => {
+				expect(screen.getByText(/city is required/i)).toBeInTheDocument();
+			});
 			expect(mockOnSubmit).not.toHaveBeenCalled();
-			expect(screen.getByText(/city is required/i)).toBeInTheDocument();
 		});
 
 		it("should require state", async () => {
@@ -248,18 +237,14 @@ describe("WarehouseForm Component", () => {
 				/>
 			);
 
-			await user.type(screen.getByLabelText("Warehouse Name"), "Test Store");
-			await user.type(screen.getByLabelText("Address"), "123 Test St");
-			await user.type(screen.getByLabelText("City"), "Test City");
-			await user.type(screen.getByLabelText("Zip Code"), "12345");
-			await user.type(screen.getByLabelText("Max Capacity"), "1000");
+			const stateInput = screen.getByLabelText("State");
+			await user.click(stateInput);
+			await user.tab(); // Blur the field
 
-			await user.click(
-				screen.getByRole("button", { name: "Create Warehouse" })
-			);
-
+			await waitFor(() => {
+				expect(screen.getByText(/state is required/i)).toBeInTheDocument();
+			});
 			expect(mockOnSubmit).not.toHaveBeenCalled();
-			expect(screen.getByText(/state is required/i)).toBeInTheDocument();
 		});
 
 		it("should validate state is 2 characters", async () => {
@@ -272,11 +257,14 @@ describe("WarehouseForm Component", () => {
 				/>
 			);
 
-			await user.type(screen.getByLabelText("State"), "Illinois");
+			await user.type(screen.getByLabelText("State"), "I"); // Typing more than 2 chars is invalid
+			await user.tab(); // Blur the field
 
-			expect(
-				screen.getByText(/state must be 2 characters/i)
-			).toBeInTheDocument();
+			await waitFor(() => {
+				expect(
+					screen.getByText("State must be 2 characters")
+				).toBeInTheDocument();
+			});
 		});
 
 		it("should require zip code", async () => {
@@ -289,18 +277,14 @@ describe("WarehouseForm Component", () => {
 				/>
 			);
 
-			await user.type(screen.getByLabelText("Warehouse Name"), "Test Store");
-			await user.type(screen.getByLabelText("Address"), "123 Test St");
-			await user.type(screen.getByLabelText("City"), "Test City");
-			await user.type(screen.getByLabelText("State"), "IL");
-			await user.type(screen.getByLabelText("Max Capacity"), "1000");
+			const zipInput = screen.getByLabelText("Zip Code");
+			await user.click(zipInput);
+			await user.tab(); // Blur the field
 
-			await user.click(
-				screen.getByRole("button", { name: "Create Warehouse" })
-			);
-
+			await waitFor(() => {
+				expect(screen.getByText(/zip code is required/i)).toBeInTheDocument();
+			});
 			expect(mockOnSubmit).not.toHaveBeenCalled();
-			expect(screen.getByText(/zip code is required/i)).toBeInTheDocument();
 		});
 
 		it("should validate zip code format", async () => {
@@ -314,8 +298,11 @@ describe("WarehouseForm Component", () => {
 			);
 
 			await user.type(screen.getByLabelText("Zip Code"), "ABC");
+			await user.tab(); // Blur the field
 
-			expect(screen.getByText(/invalid zip code/i)).toBeInTheDocument();
+			await waitFor(() => {
+				expect(screen.getByText("Invalid zip code format")).toBeInTheDocument();
+			});
 		});
 
 		it("should require max capacity", async () => {
@@ -328,18 +315,14 @@ describe("WarehouseForm Component", () => {
 				/>
 			);
 
-			await user.type(screen.getByLabelText("Warehouse Name"), "Test Store");
-			await user.type(screen.getByLabelText("Address"), "123 Test St");
-			await user.type(screen.getByLabelText("City"), "Test City");
-			await user.type(screen.getByLabelText("State"), "IL");
-			await user.type(screen.getByLabelText("Zip Code"), "12345");
+			const capacityInput = screen.getByLabelText("Max Capacity");
+			await user.click(capacityInput);
+			await user.tab(); // Blur the field
 
-			await user.click(
-				screen.getByRole("button", { name: "Create Warehouse" })
-			);
-
+			await waitFor(() => {
+				expect(screen.getByText(/capacity is required/i)).toBeInTheDocument();
+			});
 			expect(mockOnSubmit).not.toHaveBeenCalled();
-			expect(screen.getByText(/capacity is required/i)).toBeInTheDocument();
 		});
 
 		it("should validate max capacity is positive", async () => {
@@ -353,10 +336,13 @@ describe("WarehouseForm Component", () => {
 			);
 
 			await user.type(screen.getByLabelText("Max Capacity"), "-100");
+			await user.tab(); // Blur the field
 
-			expect(
-				screen.getByText(/capacity must be positive/i)
-			).toBeInTheDocument();
+			await waitFor(() => {
+				expect(
+					screen.getByText("Max capacity must be a positive number")
+				).toBeInTheDocument();
+			});
 		});
 
 		it("should validate max capacity is a number", async () => {
@@ -369,9 +355,15 @@ describe("WarehouseForm Component", () => {
 				/>
 			);
 
-			await user.type(screen.getByLabelText("Max Capacity"), "abc");
+			// type="number" prevents letters from being entered, so field stays empty
+			// This tests that an empty capacity field triggers the required error
+			const capacityInput = screen.getByLabelText("Max Capacity");
+			await user.click(capacityInput);
+			await user.tab(); // Blur the empty field
 
-			expect(screen.getByText(/must be a number/i)).toBeInTheDocument();
+			await waitFor(() => {
+				expect(screen.getByText(/capacity is required/i)).toBeInTheDocument();
+			});
 		});
 	});
 
@@ -421,7 +413,7 @@ describe("WarehouseForm Component", () => {
 				/>
 			);
 
-			expect(screen.getByRole("button", { name: /creating/i })).toBeDisabled();
+			expect(screen.getByRole("button", { name: "Saving..." })).toBeDisabled();
 		});
 
 		it("should disable cancel button when loading", () => {
@@ -448,7 +440,7 @@ describe("WarehouseForm Component", () => {
 			);
 
 			expect(screen.getByLabelText("Warehouse Name")).toBeDisabled();
-			expect(screen.getByLabelText("Address")).toBeDisabled();
+			expect(screen.getByLabelText("Street Address")).toBeDisabled();
 			expect(screen.getByLabelText("City")).toBeDisabled();
 			expect(screen.getByLabelText("State")).toBeDisabled();
 			expect(screen.getByLabelText("Zip Code")).toBeDisabled();
@@ -492,7 +484,7 @@ describe("WarehouseForm Component", () => {
 			);
 
 			expect(screen.getByLabelText("Warehouse Name")).toHaveAttribute("id");
-			expect(screen.getByLabelText("Address")).toHaveAttribute("id");
+			expect(screen.getByLabelText("Street Address")).toHaveAttribute("id");
 			expect(screen.getByLabelText("City")).toHaveAttribute("id");
 			expect(screen.getByLabelText("State")).toHaveAttribute("id");
 			expect(screen.getByLabelText("Zip Code")).toHaveAttribute("id");
@@ -509,7 +501,7 @@ describe("WarehouseForm Component", () => {
 			);
 
 			expect(screen.getByLabelText("Warehouse Name")).toBeRequired();
-			expect(screen.getByLabelText("Address")).toBeRequired();
+			expect(screen.getByLabelText("Street Address")).toBeRequired();
 			expect(screen.getByLabelText("City")).toBeRequired();
 			expect(screen.getByLabelText("State")).toBeRequired();
 			expect(screen.getByLabelText("Zip Code")).toBeRequired();

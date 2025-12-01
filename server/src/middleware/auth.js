@@ -3,7 +3,7 @@
  * Protects routes and enforces role-based access control
  */
 
-import { User } from "../models/User.js";
+const { User } = require("../models/User");
 
 /**
  * Require authentication
@@ -116,7 +116,7 @@ function requireManager(req, res, next) {
 	return requireRole(["store-manager", "partner"])(req, res, next);
 }
 
-export {
+module.exports = {
 	requireAuth,
 	requireRole,
 	requireStoreAccess,
