@@ -132,14 +132,17 @@ productSchema.index({ productType: 1, isActive: 1 });
 // Text index for search functionality
 productSchema.index({ name: "text", description: "text" });
 
-// Validation: Cards must have unitSize of 0
-productSchema.pre("save", function (next) {
+// Validation: Cards must have unitSize of 0, non-cards cannot have cardDetails
+productSchema.pre("save", function () {
 	if (this.productType === "singleCard" && this.unitSize !== 0) {
-		next(new Error("Single cards must have unitSize of 0"));
+		throw new Error("Single cards must have unitSize of 0");
 	} else if (this.productType !== "singleCard" && this.unitSize === 0) {
-		next(new Error("Non-card products must have unitSize greater than 0"));
-	} else {
-		next();
+		throw new Error("Non-card products must have unitSize greater than 0");
+	}
+
+	// Non-card products should not have cardDetails
+	if (this.productType !== "singleCard" && this.cardDetails) {
+		throw new Error("Non-card products cannot have cardDetails");
 	}
 });
 
