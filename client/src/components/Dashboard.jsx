@@ -4,6 +4,7 @@ import { storeAPI } from "../api/stores";
 import { useState, useEffect } from "react";
 import StoreManagement from "./StoreManagement";
 import InventoryManagement from "./InventoryManagement";
+import ProductManagement from "./ProductManagement";
 
 function Dashboard({ user, onLogout }) {
 	const [store, setStore] = useState(null);
@@ -62,7 +63,7 @@ function Dashboard({ user, onLogout }) {
 		}
 	};
 
-	// If viewing store management, render that instead
+	// Render different views based on currentView state
 	if (currentView === "stores") {
 		return (
 			<StoreManagement
@@ -76,6 +77,13 @@ function Dashboard({ user, onLogout }) {
 			<InventoryManagement
 				user={user}
 				onUnauthorized={() => setCurrentView("dashboard")}
+				onBack={() => setCurrentView("dashboard")}
+			/>
+		);
+	} else if (currentView === "products") {
+		return (
+			<ProductManagement
+				user={user}
 				onBack={() => setCurrentView("dashboard")}
 			/>
 		);
@@ -146,19 +154,32 @@ function Dashboard({ user, onLogout }) {
 							<Button
 								variant="primary"
 								onClick={() => setCurrentView("stores")}
+								className="me-2"
 							>
 								Manage Stores
 							</Button>
 						</div>
-					)}{" "}
+					)}
 					<div className="mb-3">
 						<Button
 							variant="primary"
 							onClick={() => setCurrentView("inventory")}
+							className="me-2"
 						>
 							Manage Inventory
 						</Button>
 					</div>
+					{user.role === "partner" && (
+						<div className="mb-3">
+							<Button
+								variant="primary"
+								onClick={() => setCurrentView("products")}
+								className="me-2"
+							>
+								Manage Products
+							</Button>
+						</div>
+					)}
 					{user.role === "partner" && (
 						<div>
 							<h5 className="text-success">Partner Access</h5>
