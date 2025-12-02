@@ -61,7 +61,6 @@ const storeSchema = new mongoose.Schema(
 
 // Indexes for common queries
 storeSchema.index({ name: 1 });
-storeSchema.index({ isActive: 1 });
 
 // Virtual: Full address string
 storeSchema.virtual("fullAddress").get(function () {

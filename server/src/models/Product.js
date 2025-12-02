@@ -66,7 +66,6 @@ const productSchema = new mongoose.Schema(
 				"binder",
 				"other",
 			],
-			index: true,
 		},
 		name: {
 			type: String,
@@ -83,7 +82,6 @@ const productSchema = new mongoose.Schema(
 			type: String,
 			required: true,
 			trim: true,
-			index: true,
 		},
 		cardDetails: {
 			type: cardDetailsSchema,
@@ -114,7 +112,6 @@ const productSchema = new mongoose.Schema(
 		isActive: {
 			type: Boolean,
 			default: true,
-			index: true,
 		},
 	},
 	{
