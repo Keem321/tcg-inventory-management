@@ -62,7 +62,7 @@ function requireRole(roles) {
 
 /**
  * Require access to a specific store
- * Partners can access any store, managers can only access their assigned store
+ * Partners can access any store, managers and employees can only access their assigned store
  */
 function requireStoreAccess(req, res, next) {
 	if (!req.user) {
@@ -77,8 +77,8 @@ function requireStoreAccess(req, res, next) {
 		return next();
 	}
 
-	// Store managers can only access their assigned store
-	if (req.user.role === "store-manager") {
+	// Store managers and employees can only access their assigned store
+	if (req.user.role === "store-manager" || req.user.role === "employee") {
 		const requestedStoreId = req.params.id;
 		const assignedStoreId =
 			typeof req.user.assignedStoreId === "object"

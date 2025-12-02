@@ -3,11 +3,12 @@ import { authAPI } from "../api/auth";
 import { storeAPI } from "../api/stores";
 import { useState, useEffect } from "react";
 import StoreManagement from "./StoreManagement";
+import InventoryManagement from "./InventoryManagement";
 
 function Dashboard({ user, onLogout }) {
 	const [store, setStore] = useState(null);
 	const [loadingStore, setLoadingStore] = useState(false);
-	const [currentView, setCurrentView] = useState("dashboard"); // 'dashboard' or 'stores'
+	const [currentView, setCurrentView] = useState("dashboard");
 
 	useEffect(() => {
 		const fetchStore = async () => {
@@ -65,6 +66,14 @@ function Dashboard({ user, onLogout }) {
 	if (currentView === "stores") {
 		return (
 			<StoreManagement
+				user={user}
+				onUnauthorized={() => setCurrentView("dashboard")}
+				onBack={() => setCurrentView("dashboard")}
+			/>
+		);
+	} else if (currentView === "inventory") {
+		return (
+			<InventoryManagement
 				user={user}
 				onUnauthorized={() => setCurrentView("dashboard")}
 				onBack={() => setCurrentView("dashboard")}
@@ -142,6 +151,14 @@ function Dashboard({ user, onLogout }) {
 							</Button>
 						</div>
 					)}{" "}
+					<div className="mb-3">
+						<Button
+							variant="primary"
+							onClick={() => setCurrentView("inventory")}
+						>
+							Manage Inventory
+						</Button>
+					</div>
 					{user.role === "partner" && (
 						<div>
 							<h5 className="text-success">Partner Access</h5>
