@@ -49,25 +49,24 @@ const storeSchema = new mongoose.Schema(
 		isActive: {
 			type: Boolean,
 			default: true,
+			index: true,
 		},
 	},
 	{
 		timestamps: true,
+		toJSON: { virtuals: true },
+		toObject: { virtuals: true },
 	}
 );
 
-// Indexes
+// Indexes for common queries
 storeSchema.index({ name: 1 });
 storeSchema.index({ isActive: 1 });
 
-// Virtual for full address
+// Virtual: Full address string
 storeSchema.virtual("fullAddress").get(function () {
 	return `${this.location.address}, ${this.location.city}, ${this.location.state} ${this.location.zipCode}`;
 });
-
-// Ensure virtuals in JSON output
-storeSchema.set("toJSON", { virtuals: true });
-storeSchema.set("toObject", { virtuals: true });
 
 const Store = mongoose.models.Store || mongoose.model("Store", storeSchema);
 
