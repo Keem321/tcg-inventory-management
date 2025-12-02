@@ -160,6 +160,9 @@ function ProductManagement({ onBack }) {
 					<p className="text-muted">
 						Manage product catalog and view inventory across all stores
 					</p>
+					<p className="text-muted">
+						Note: add dataTable like ordering functionality?
+					</p>
 				</Col>
 				<Col xs="auto">
 					<Button variant="outline-secondary" onClick={onBack}>
@@ -280,7 +283,8 @@ function ProductManagement({ onBack }) {
 												<strong>{product.name}</strong>
 												{product.cardDetails && (
 													<div className="small text-muted">
-														{product.cardDetails.set} #{product.cardDetails.cardNumber}
+														{product.cardDetails.set} #
+														{product.cardDetails.cardNumber}
 													</div>
 												)}
 											</td>
@@ -317,7 +321,9 @@ function ProductManagement({ onBack }) {
 														) : productDetails[product._id] ? (
 															<ProductDetails
 																product={productDetails[product._id].product}
-																inventory={productDetails[product._id].inventory}
+																inventory={
+																	productDetails[product._id].inventory
+																}
 															/>
 														) : null}
 													</div>
