@@ -11,7 +11,7 @@ const { User } = require("../models/User");
  * Ensures user is logged in and attaches user to request
  */
 async function requireAuth(req, res, next) {
-	if (!req.session.userId) {
+	if (!req.session || !req.session.userId) {
 		return res.status(401).json({
 			success: false,
 			message: "Authentication required",
@@ -84,6 +84,14 @@ function requireStoreAccess(req, res, next) {
 		req.user.role === USER_ROLES.EMPLOYEE
 	) {
 		const requestedStoreId = req.params.id;
+
+		if (!req.user.assignedStoreId) {
+			return res.status(403).json({
+				success: false,
+				message: "No store assigned to your account",
+			});
+		}
+
 		const assignedStoreId =
 			typeof req.user.assignedStoreId === "object"
 				? req.user.assignedStoreId.toString()

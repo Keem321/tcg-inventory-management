@@ -172,16 +172,20 @@ describe("Auth Middleware - Role-Based Access Control", () => {
 			expect(next).not.toHaveBeenCalled();
 		});
 
-		it("should deny employees from accessing stores", () => {
+		it("should deny employees access to other stores", () => {
 			req.user = {
 				role: USER_ROLES.EMPLOYEE,
 				assignedStoreId: "store123",
 			};
-			req.params.id = "store123";
+			req.params.id = "store456";
 
 			requireStoreAccess(req, res, next);
 
 			expect(res.status).toHaveBeenCalledWith(403);
+			expect(res.json).toHaveBeenCalledWith({
+				success: false,
+				message: "You can only access your assigned store",
+			});
 			expect(next).not.toHaveBeenCalled();
 		});
 
