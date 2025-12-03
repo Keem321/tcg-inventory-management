@@ -8,7 +8,6 @@ const { Inventory } = require("../models/Inventory");
 const { Store } = require("../models/Store");
 const { Product } = require("../models/Product");
 const {
-	requireAuth,
 	requireRole,
 	requireStoreAccess,
 } = require("../middleware/auth");
@@ -22,7 +21,7 @@ const router = express.Router();
  * Check if inventory already exists for a product at a store
  * Body: { storeId, productId, location }
  */
-router.post("/check-duplicate", requireAuth, async (req, res) => {
+router.post("/check-duplicate", async (req, res) => {
 	try {
 		const { storeId, productId, location } = req.body;
 
@@ -99,7 +98,6 @@ router.post("/check-duplicate", requireAuth, async (req, res) => {
  */
 router.get(
 	"/",
-	requireAuth,
 	requireRole([USER_ROLES.PARTNER]),
 	async (req, res) => {
 		try {
@@ -143,7 +141,6 @@ router.get(
  */
 router.get(
 	"/store/:id",
-	requireAuth,
 	requireRole([
 		USER_ROLES.PARTNER,
 		USER_ROLES.STORE_MANAGER,
@@ -202,7 +199,6 @@ router.get(
  */
 router.post(
 	"/",
-	requireAuth,
 	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
 	requireStoreAccess,
 	async (req, res) => {
@@ -361,7 +357,6 @@ router.post(
  */
 router.put(
 	"/:id",
-	requireAuth,
 	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
 	requireStoreAccess,
 	async (req, res) => {
@@ -451,7 +446,6 @@ router.put(
  */
 router.delete(
 	"/:id",
-	requireAuth,
 	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
 	requireStoreAccess,
 	async (req, res) => {

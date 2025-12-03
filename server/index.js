@@ -7,6 +7,7 @@ const express = require("express");
 const session = require("express-session");
 const cors = require("cors");
 const { connectDatabase } = require("./src/config/database");
+const { requireAuth } = require("./src/middleware/auth");
 const authRoutes = require("./src/routes/auth");
 const storeRoutes = require("./src/routes/stores");
 const inventoryRoutes = require("./src/routes/inventory");
@@ -42,7 +43,12 @@ app.use(
 );
 
 // Routes
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authRoutes); // Public routes (login)
+
+// Apply authentication to all routes below this point
+app.use(requireAuth);
+
+// Protected routes - all require authentication
 app.use("/api/stores", storeRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/products", productRoutes);
