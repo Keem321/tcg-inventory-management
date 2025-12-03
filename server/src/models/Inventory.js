@@ -293,10 +293,7 @@ inventorySchema.statics.calculateStoreCapacity = async function (storeId) {
 };
 
 // Static method: Get floor display quantities by product type, brand, or specific product
-inventorySchema.statics.getFloorDisplayQuantities = async function (
-	storeId,
-	filters = {}
-) {
+inventorySchema.statics.getFloorDisplayQuantities = async function (storeId) {
 	const query = {
 		storeId,
 		location: "floor",

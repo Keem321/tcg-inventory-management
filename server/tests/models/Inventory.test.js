@@ -7,6 +7,20 @@ import { Inventory } from "../../src/models/Inventory.js";
 import { Store } from "../../src/models/Store.js";
 import { Product } from "../../src/models/Product.js";
 import "../setup.js"; // Import test setup
+import {
+	storeFixtures,
+	productFixtures,
+	inventoryFixtures,
+	boundaryFixtures,
+} from "../fixtures/testData.js";
+import {
+	CARD_RARITIES,
+	CARD_CONDITIONS,
+	CARD_FINISHES,
+	CONTAINER_TYPES,
+	LOCATIONS,
+	PRODUCT_TYPES,
+} from "../../src/constants/enums.js";
 
 describe("Inventory Model", () => {
 	let testStore;
@@ -15,73 +29,18 @@ describe("Inventory Model", () => {
 	let cardProduct2;
 
 	beforeEach(async () => {
-		// Create test store
-		testStore = await Store.create({
-			name: "Test Store",
-			location: {
-				address: "123 Main St",
-				city: "Portland",
-				state: "OR",
-				zipCode: "97201",
-			},
-			maxCapacity: 10000,
-			currentCapacity: 0,
-		});
-
-		// Create test products
-		boosterProduct = await Product.create({
-			sku: "MTG-BOOSTER-001",
-			productType: "boosterPack",
-			name: "Draft Booster",
-			brand: "Magic: The Gathering",
-			unitSize: 1,
-			basePrice: 3.99,
-		});
-
-		cardProduct1 = await Product.create({
-			sku: "MTG-CARD-001",
-			productType: "singleCard",
-			name: "Lightning Bolt",
-			brand: "Magic: The Gathering",
-			cardDetails: {
-				set: "Alpha",
-				cardNumber: "161",
-				rarity: "common",
-				condition: "near-mint",
-				finish: "non-foil",
-			},
-			unitSize: 0,
-			basePrice: 50.0,
-		});
-
-		cardProduct2 = await Product.create({
-			sku: "MTG-CARD-002",
-			productType: "singleCard",
-			name: "Black Lotus",
-			brand: "Magic: The Gathering",
-			cardDetails: {
-				set: "Alpha",
-				cardNumber: "232",
-				rarity: "rare",
-				condition: "near-mint",
-				finish: "non-foil",
-			},
-			unitSize: 0,
-			basePrice: 15000.0,
-		});
+		// Create test store and products using fixtures
+		testStore = await Store.create(storeFixtures.downtown());
+		boosterProduct = await Product.create(productFixtures.boosterPack());
+		cardProduct1 = await Product.create(productFixtures.singleCard());
+		cardProduct2 = await Product.create(productFixtures.blackLotus());
 	});
 
 	describe("Schema Validation - Standard Inventory", () => {
 		it("should create a valid standard inventory item", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 50,
-				location: "floor",
-				minStockLevel: 10,
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id)
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory._id).toBeDefined();
@@ -90,7 +49,7 @@ describe("Inventory Model", () => {
 				boosterProduct._id.toString()
 			);
 			expect(savedInventory.quantity).toBe(50);
-			expect(savedInventory.location).toBe("floor");
+			expect(savedInventory.location).toBe(LOCATIONS.FLOOR);
 			expect(savedInventory.minStockLevel).toBe(10);
 			expect(savedInventory.cardContainer).toBeNull();
 			expect(savedInventory.isActive).toBe(true);
@@ -98,80 +57,60 @@ describe("Inventory Model", () => {
 		});
 
 		it("should create inventory in back location", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 100,
-				location: "back",
-				minStockLevel: 20,
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.back(testStore._id, boosterProduct._id)
+			);
 			const savedInventory = await inventory.save();
 
-			expect(savedInventory.location).toBe("back");
+			expect(savedInventory.location).toBe(LOCATIONS.BACK);
 		});
 
 		it("should default minStockLevel to 0", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 30,
-				location: "floor",
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					minStockLevel: undefined,
+				})
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory.minStockLevel).toBe(0);
 		});
 
 		it("should default lastRestocked to null", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 30,
-				location: "floor",
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id)
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory.lastRestocked).toBeNull();
 		});
 
 		it("should allow notes field", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 30,
-				location: "floor",
-				notes: "Reserved for tournament",
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.withNotes(testStore._id, boosterProduct._id)
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory.notes).toBe("Reserved for tournament");
 		});
 
 		it("should fail if storeId is missing", async () => {
-			const inventoryData = {
-				productId: boosterProduct._id,
-				quantity: 30,
-				location: "floor",
-			};
+			const inventoryData = inventoryFixtures.floor(
+				testStore._id,
+				boosterProduct._id
+			);
+			delete inventoryData.storeId;
 
 			const inventory = new Inventory(inventoryData);
 			await expect(inventory.save()).rejects.toThrow();
 		});
 
 		it("should fail if productId is missing for standard inventory", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				quantity: 30,
-				location: "floor",
-			};
+			const inventoryData = inventoryFixtures.floor(
+				testStore._id,
+				boosterProduct._id
+			);
+			delete inventoryData.productId;
 
 			const inventory = new Inventory(inventoryData);
 			await expect(inventory.save()).rejects.toThrow(
@@ -180,11 +119,11 @@ describe("Inventory Model", () => {
 		});
 
 		it("should fail if quantity is missing for standard inventory", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				location: "floor",
-			};
+			const inventoryData = inventoryFixtures.floor(
+				testStore._id,
+				boosterProduct._id
+			);
+			delete inventoryData.quantity;
 
 			const inventory = new Inventory(inventoryData);
 			await expect(inventory.save()).rejects.toThrow(
@@ -193,76 +132,59 @@ describe("Inventory Model", () => {
 		});
 
 		it("should fail if location is missing", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 30,
-			};
+			const inventoryData = inventoryFixtures.floor(
+				testStore._id,
+				boosterProduct._id
+			);
+			delete inventoryData.location;
 
 			const inventory = new Inventory(inventoryData);
 			await expect(inventory.save()).rejects.toThrow();
 		});
 
 		it("should fail if location is invalid", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 30,
-				location: "warehouse",
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					location: "warehouse",
+				})
+			);
 			await expect(inventory.save()).rejects.toThrow();
 		});
 
 		it("should fail if quantity is negative", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: -5,
-				location: "floor",
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					quantity: -5,
+				})
+			);
 			await expect(inventory.save()).rejects.toThrow();
 		});
 
 		it("should fail if minStockLevel is negative", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 30,
-				location: "floor",
-				minStockLevel: -10,
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					minStockLevel: -10,
+				})
+			);
 			await expect(inventory.save()).rejects.toThrow();
 		});
 	});
 
 	describe("Schema Validation - Card Containers", () => {
 		it("should create a valid display case container", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Display Case A3",
-					containerUnitSize: 5,
-					cardInventory: [
-						{ productId: cardProduct1._id, quantity: 10 },
-						{ productId: cardProduct2._id, quantity: 2 },
-					],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.displayCase(testStore._id, [
+					{ productId: cardProduct1._id, quantity: 10 },
+					{ productId: cardProduct2._id, quantity: 2 },
+				])
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory._id).toBeDefined();
 			expect(savedInventory.cardContainer).toBeDefined();
-			expect(savedInventory.cardContainer.containerType).toBe("display-case");
+			expect(savedInventory.cardContainer.containerType).toBe(
+				CONTAINER_TYPES.DISPLAY_CASE
+			);
 			expect(savedInventory.cardContainer.containerName).toBe(
 				"Display Case A3"
 			);
@@ -273,166 +195,113 @@ describe("Inventory Model", () => {
 		});
 
 		it("should create a valid bulk box container", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "back",
-				cardContainer: {
-					containerType: "bulk-box",
-					containerName: "Commons Box - Alpha",
-					containerUnitSize: 3,
-					cardInventory: [{ productId: cardProduct1._id, quantity: 100 }],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.bulkBox(testStore._id, [
+					{ productId: cardProduct1._id, quantity: 100 },
+				])
+			);
 			const savedInventory = await inventory.save();
 
-			expect(savedInventory.cardContainer.containerType).toBe("bulk-box");
+			expect(savedInventory.cardContainer.containerType).toBe(
+				CONTAINER_TYPES.BULK_BOX
+			);
 		});
 
 		it("should create a valid bulk bin container", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "bulk-bin",
-					containerName: "Bulk Bin - Floor 1",
-					containerUnitSize: 10,
-					cardInventory: [
-						{ productId: cardProduct1._id, quantity: 500 },
-						{ productId: cardProduct2._id, quantity: 50 },
-					],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.bulkBin(testStore._id, [
+					{ productId: cardProduct1._id, quantity: 500 },
+					{ productId: cardProduct2._id, quantity: 50 },
+				])
+			);
 			const savedInventory = await inventory.save();
 
-			expect(savedInventory.cardContainer.containerType).toBe("bulk-bin");
+			expect(savedInventory.cardContainer.containerType).toBe(
+				CONTAINER_TYPES.BULK_BIN
+			);
 		});
 
 		it("should allow empty cardInventory array for container", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Empty Display Case",
-					containerUnitSize: 5,
-					cardInventory: [],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.emptyContainer(testStore._id)
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory.cardContainer.cardInventory).toHaveLength(0);
 		});
 
 		it("should default containerUnitSize to 0", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Test Case",
-					cardInventory: [],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.emptyContainer(testStore._id, {
+					cardContainer: {
+						containerType: CONTAINER_TYPES.DISPLAY_CASE,
+						containerName: "Test Case",
+						cardInventory: [],
+					},
+				})
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory.cardContainer.containerUnitSize).toBe(0);
 		});
 
 		it("should fail if container has invalid containerType", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "invalid-type",
-					containerName: "Test Container",
-					cardInventory: [],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.emptyContainer(testStore._id, {
+					cardContainer: {
+						containerType: "invalid-type",
+						containerName: "Test Container",
+						cardInventory: [],
+					},
+				})
+			);
 			await expect(inventory.save()).rejects.toThrow();
 		});
 
 		it("should fail if container missing containerType", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerName: "Test Container",
-					cardInventory: [],
-				},
-			};
+			const inventoryData = inventoryFixtures.emptyContainer(testStore._id);
+			delete inventoryData.cardContainer.containerType;
 
 			const inventory = new Inventory(inventoryData);
 			await expect(inventory.save()).rejects.toThrow();
 		});
 
 		it("should fail if container missing containerName", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					cardInventory: [],
-				},
-			};
+			const inventoryData = inventoryFixtures.emptyContainer(testStore._id);
+			delete inventoryData.cardContainer.containerName;
 
 			const inventory = new Inventory(inventoryData);
 			await expect(inventory.save()).rejects.toThrow();
 		});
 
 		it("should fail if containerUnitSize is negative", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Test Case",
-					containerUnitSize: -5,
-					cardInventory: [],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.emptyContainer(testStore._id, {
+					cardContainer: {
+						containerType: CONTAINER_TYPES.DISPLAY_CASE,
+						containerName: "Test Case",
+						containerUnitSize: -5,
+						cardInventory: [],
+					},
+				})
+			);
 			await expect(inventory.save()).rejects.toThrow();
 		});
 
 		it("should fail if card in cardInventory has quantity less than 1", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Test Case",
-					cardInventory: [{ productId: cardProduct1._id, quantity: 0 }],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.displayCase(testStore._id, [
+					{ productId: cardProduct1._id, quantity: 0 },
+				])
+			);
 			await expect(inventory.save()).rejects.toThrow();
 		});
 	});
 
 	describe("Pre-save Validation - Mutual Exclusivity", () => {
 		it("should fail if card container has productId", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Test Case",
-					cardInventory: [],
-				},
-			};
+			const inventoryData = inventoryFixtures.emptyContainer(testStore._id);
+			inventoryData.productId = boosterProduct._id;
 
 			const inventory = new Inventory(inventoryData);
 			await expect(inventory.save()).rejects.toThrow(
@@ -441,16 +310,8 @@ describe("Inventory Model", () => {
 		});
 
 		it("should fail if card container has quantity", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				quantity: 30,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Test Case",
-					cardInventory: [],
-				},
-			};
+			const inventoryData = inventoryFixtures.emptyContainer(testStore._id);
+			inventoryData.quantity = 30;
 
 			const inventory = new Inventory(inventoryData);
 			await expect(inventory.save()).rejects.toThrow(
@@ -459,11 +320,11 @@ describe("Inventory Model", () => {
 		});
 
 		it("should fail if standard inventory missing productId", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				quantity: 30,
-				location: "floor",
-			};
+			const inventoryData = inventoryFixtures.floor(
+				testStore._id,
+				boosterProduct._id
+			);
+			delete inventoryData.productId;
 
 			const inventory = new Inventory(inventoryData);
 			await expect(inventory.save()).rejects.toThrow(
@@ -472,11 +333,11 @@ describe("Inventory Model", () => {
 		});
 
 		it("should fail if standard inventory missing quantity", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				location: "floor",
-			};
+			const inventoryData = inventoryFixtures.floor(
+				testStore._id,
+				boosterProduct._id
+			);
+			delete inventoryData.quantity;
 
 			const inventory = new Inventory(inventoryData);
 			await expect(inventory.save()).rejects.toThrow(
@@ -487,151 +348,93 @@ describe("Inventory Model", () => {
 
 	describe("Virtual Properties", () => {
 		it("should return true for isCardContainer virtual when cardContainer exists", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Test Case",
-					cardInventory: [],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.emptyContainer(testStore._id)
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory.isCardContainer).toBe(true);
 		});
 
 		it("should return false for isCardContainer virtual when cardContainer is null", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 30,
-				location: "floor",
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					quantity: 30,
+				})
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory.isCardContainer).toBe(false);
 		});
 
 		it("should calculate totalCards virtual correctly", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Test Case",
-					cardInventory: [
-						{ productId: cardProduct1._id, quantity: 10 },
-						{ productId: cardProduct2._id, quantity: 5 },
-					],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.displayCase(testStore._id, [
+					{ productId: cardProduct1._id, quantity: 10 },
+					{ productId: cardProduct2._id, quantity: 5 },
+				])
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory.totalCards).toBe(15);
 		});
 
 		it("should return 0 for totalCards when cardInventory is empty", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Test Case",
-					cardInventory: [],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.emptyContainer(testStore._id)
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory.totalCards).toBe(0);
 		});
 
 		it("should return 0 for totalCards for standard inventory", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 30,
-				location: "floor",
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					quantity: 30,
+				})
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory.totalCards).toBe(0);
 		});
 
 		it("should calculate uniqueCardTypes virtual correctly", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Test Case",
-					cardInventory: [
-						{ productId: cardProduct1._id, quantity: 10 },
-						{ productId: cardProduct2._id, quantity: 5 },
-					],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.displayCase(testStore._id, [
+					{ productId: cardProduct1._id, quantity: 10 },
+					{ productId: cardProduct2._id, quantity: 5 },
+				])
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory.uniqueCardTypes).toBe(2);
 		});
 
 		it("should return 0 for uniqueCardTypes when cardInventory is empty", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Test Case",
-					cardInventory: [],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.emptyContainer(testStore._id)
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory.uniqueCardTypes).toBe(0);
 		});
 
 		it("should calculate effectiveUnitSize for card container", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Test Case",
-					containerUnitSize: 5,
-					cardInventory: [],
-				},
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.emptyContainer(testStore._id)
+			);
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory.effectiveUnitSize).toBe(5);
 		});
 
 		it("should calculate effectiveUnitSize for standard inventory with populated productId", async () => {
-			const inventoryData = {
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 10,
-				location: "floor",
-			};
-
-			const inventory = new Inventory(inventoryData);
+			const inventory = new Inventory(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					quantity: 10,
+				})
+			);
 			const savedInventory = await inventory.save();
 			await savedInventory.populate("productId");
 
@@ -643,27 +446,15 @@ describe("Inventory Model", () => {
 	describe("Static Methods - findByStore", () => {
 		beforeEach(async () => {
 			await Inventory.create([
-				{
-					storeId: testStore._id,
-					productId: boosterProduct._id,
-					quantity: 50,
-					location: "floor",
-				},
-				{
-					storeId: testStore._id,
-					productId: boosterProduct._id,
-					quantity: 100,
-					location: "back",
-				},
-				{
-					storeId: testStore._id,
-					location: "floor",
+				inventoryFixtures.floor(testStore._id, boosterProduct._id),
+				inventoryFixtures.back(testStore._id, boosterProduct._id),
+				inventoryFixtures.displayCase(testStore._id, [], {
 					cardContainer: {
-						containerType: "display-case",
+						containerType: CONTAINER_TYPES.DISPLAY_CASE,
 						containerName: "Display A",
 						cardInventory: [],
 					},
-				},
+				}),
 			]);
 		});
 
@@ -674,18 +465,20 @@ describe("Inventory Model", () => {
 
 		it("should filter by location - floor", async () => {
 			const inventory = await Inventory.findByStore(testStore._id, {
-				location: "floor",
+				location: LOCATIONS.FLOOR,
 			});
 			expect(inventory).toHaveLength(2);
-			expect(inventory.every((item) => item.location === "floor")).toBe(true);
+			expect(inventory.every((item) => item.location === LOCATIONS.FLOOR)).toBe(
+				true
+			);
 		});
 
 		it("should filter by location - back", async () => {
 			const inventory = await Inventory.findByStore(testStore._id, {
-				location: "back",
+				location: LOCATIONS.BACK,
 			});
 			expect(inventory).toHaveLength(1);
-			expect(inventory[0].location).toBe("back");
+			expect(inventory[0].location).toBe(LOCATIONS.BACK);
 		});
 
 		it("should filter by productId", async () => {
@@ -700,57 +493,38 @@ describe("Inventory Model", () => {
 		let store2;
 
 		beforeEach(async () => {
-			store2 = await Store.create({
-				name: "Store 2",
-				location: {
-					address: "456 Oak St",
-					city: "Seattle",
-					state: "WA",
-					zipCode: "98101",
-				},
-				maxCapacity: 10000,
-			});
+			store2 = await Store.create(storeFixtures.seattle());
 
 			await Inventory.create([
-				{
-					storeId: testStore._id,
-					location: "floor",
-					cardContainer: {
-						containerType: "display-case",
-						containerName: "Display A",
-						cardInventory: [
-							{ productId: cardProduct1._id, quantity: 10 },
-							{ productId: cardProduct2._id, quantity: 2 },
-						],
-					},
-				},
-				{
-					storeId: testStore._id,
-					location: "back",
-					cardContainer: {
-						containerType: "bulk-box",
-						containerName: "Box 1",
-						cardInventory: [{ productId: cardProduct1._id, quantity: 100 }],
-					},
-				},
-				{
-					storeId: store2._id,
-					location: "floor",
-					cardContainer: {
-						containerType: "display-case",
-						containerName: "Display B",
-						cardInventory: [{ productId: cardProduct1._id, quantity: 5 }],
-					},
-				},
-				{
-					storeId: testStore._id,
-					location: "floor",
-					cardContainer: {
-						containerType: "display-case",
-						containerName: "Display C",
-						cardInventory: [{ productId: cardProduct2._id, quantity: 1 }],
-					},
-				},
+				inventoryFixtures.displayCase(testStore._id, [
+					{ productId: cardProduct1._id, quantity: 10 },
+					{ productId: cardProduct2._id, quantity: 2 },
+				]),
+				inventoryFixtures.bulkBox(testStore._id, [
+					{ productId: cardProduct1._id, quantity: 100 },
+				]),
+				inventoryFixtures.displayCase(
+					store2._id,
+					[{ productId: cardProduct1._id, quantity: 5 }],
+					{
+						cardContainer: {
+							containerType: CONTAINER_TYPES.DISPLAY_CASE,
+							containerName: "Display B",
+							cardInventory: [{ productId: cardProduct1._id, quantity: 5 }],
+						},
+					}
+				),
+				inventoryFixtures.displayCase(
+					testStore._id,
+					[{ productId: cardProduct2._id, quantity: 1 }],
+					{
+						cardContainer: {
+							containerType: CONTAINER_TYPES.DISPLAY_CASE,
+							containerName: "Display C",
+							cardInventory: [{ productId: cardProduct2._id, quantity: 1 }],
+						},
+					}
+				),
 			]);
 		});
 
@@ -775,21 +549,20 @@ describe("Inventory Model", () => {
 		});
 
 		it("should return empty array if card not in any container", async () => {
-			const otherCard = await Product.create({
-				sku: "MTG-CARD-999",
-				productType: "singleCard",
-				name: "Test Card",
-				brand: "Magic: The Gathering",
-				cardDetails: {
-					set: "Test Set",
-					cardNumber: "999",
-					rarity: "common",
-					condition: "near-mint",
-					finish: "non-foil",
-				},
-				unitSize: 0,
-				basePrice: 1.0,
-			});
+			const otherCard = await Product.create(
+				productFixtures.singleCard({
+					sku: "MTG-CARD-999",
+					name: "Test Card",
+					cardDetails: {
+						set: "Test Set",
+						cardNumber: "999",
+						rarity: CARD_RARITIES.COMMON,
+						condition: CARD_CONDITIONS.NEAR_MINT,
+						finish: CARD_FINISHES.NON_FOIL,
+					},
+					basePrice: 1.0,
+				})
+			);
 
 			const containers = await Inventory.findContainersWithCard(otherCard._id);
 			expect(containers).toHaveLength(0);
@@ -800,48 +573,19 @@ describe("Inventory Model", () => {
 		let store2;
 
 		beforeEach(async () => {
-			store2 = await Store.create({
-				name: "Store 2",
-				location: {
-					address: "456 Oak St",
-					city: "Seattle",
-					state: "WA",
-					zipCode: "98101",
-				},
-				maxCapacity: 10000,
-			});
+			store2 = await Store.create(storeFixtures.seattle());
 
 			await Inventory.create([
-				{
-					storeId: testStore._id,
-					productId: boosterProduct._id,
-					quantity: 5,
-					location: "floor",
-					minStockLevel: 10,
-				},
-				{
-					storeId: testStore._id,
-					productId: boosterProduct._id,
+				inventoryFixtures.lowStock(testStore._id, boosterProduct._id),
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
 					quantity: 15,
-					location: "back",
-					minStockLevel: 10,
-				},
-				{
-					storeId: store2._id,
-					productId: boosterProduct._id,
+					location: LOCATIONS.BACK,
+				}),
+				inventoryFixtures.lowStock(store2._id, boosterProduct._id, {
 					quantity: 3,
-					location: "floor",
 					minStockLevel: 20,
-				},
-				{
-					storeId: testStore._id,
-					location: "floor",
-					cardContainer: {
-						containerType: "display-case",
-						containerName: "Display",
-						cardInventory: [],
-					},
-				},
+				}),
+				inventoryFixtures.emptyContainer(testStore._id),
 			]);
 		});
 
@@ -867,13 +611,11 @@ describe("Inventory Model", () => {
 
 		it("should return empty array if no low-stock items", async () => {
 			await Inventory.deleteMany({});
-			await Inventory.create({
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 100,
-				location: "floor",
-				minStockLevel: 10,
-			});
+			await Inventory.create(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					quantity: 100,
+				})
+			);
 
 			const lowStock = await Inventory.findLowStock();
 			expect(lowStock).toHaveLength(0);
@@ -883,22 +625,10 @@ describe("Inventory Model", () => {
 	describe("Static Methods - calculateStoreCapacity", () => {
 		beforeEach(async () => {
 			await Inventory.create([
-				{
-					storeId: testStore._id,
-					productId: boosterProduct._id,
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
 					quantity: 10,
-					location: "floor",
-				},
-				{
-					storeId: testStore._id,
-					location: "floor",
-					cardContainer: {
-						containerType: "display-case",
-						containerName: "Display",
-						containerUnitSize: 5,
-						cardInventory: [],
-					},
-				},
+				}),
+				inventoryFixtures.emptyContainer(testStore._id),
 			]);
 		});
 
@@ -911,29 +641,16 @@ describe("Inventory Model", () => {
 		});
 
 		it("should return 0 for store with no inventory", async () => {
-			const emptyStore = await Store.create({
-				name: "Empty Store",
-				location: {
-					address: "789 Pine St",
-					city: "Denver",
-					state: "CO",
-					zipCode: "80202",
-				},
-				maxCapacity: 10000,
-			});
+			const emptyStore = await Store.create(storeFixtures.denver());
 
 			const capacity = await Inventory.calculateStoreCapacity(emptyStore._id);
 			expect(capacity).toBe(0);
 		});
 
 		it("should only count active inventory", async () => {
-			await Inventory.create({
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 50,
-				location: "floor",
-				isActive: false,
-			});
+			await Inventory.create(
+				inventoryFixtures.inactive(testStore._id, boosterProduct._id)
+			);
 
 			const capacity = await Inventory.calculateStoreCapacity(testStore._id);
 			// Should not include the inactive inventory
@@ -945,34 +662,14 @@ describe("Inventory Model", () => {
 		let sleeveProduct;
 
 		beforeEach(async () => {
-			sleeveProduct = await Product.create({
-				sku: "DS-SLEEVES-001",
-				productType: "sleeves",
-				name: "Matte Black",
-				brand: "Dragon Shield",
-				unitSize: 1.5,
-				basePrice: 9.99,
-			});
+			sleeveProduct = await Product.create(productFixtures.sleeves());
 
 			await Inventory.create([
-				{
-					storeId: testStore._id,
-					productId: boosterProduct._id,
-					quantity: 50,
-					location: "floor",
-				},
-				{
-					storeId: testStore._id,
-					productId: boosterProduct._id,
-					quantity: 100,
-					location: "back",
-				},
-				{
-					storeId: testStore._id,
-					productId: sleeveProduct._id,
+				inventoryFixtures.floor(testStore._id, boosterProduct._id),
+				inventoryFixtures.back(testStore._id, boosterProduct._id),
+				inventoryFixtures.floor(testStore._id, sleeveProduct._id, {
 					quantity: 30,
-					location: "floor",
-				},
+				}),
 			]);
 		});
 
@@ -990,8 +687,8 @@ describe("Inventory Model", () => {
 				testStore._id
 			);
 
-			expect(quantities.byProductType["boosterPack"]).toBe(50);
-			expect(quantities.byProductType["sleeves"]).toBe(30);
+			expect(quantities.byProductType[PRODUCT_TYPES.BOOSTER_PACK]).toBe(50);
+			expect(quantities.byProductType[PRODUCT_TYPES.SLEEVES]).toBe(30);
 		});
 
 		it("should calculate floor display quantities by brand", async () => {
@@ -1026,15 +723,7 @@ describe("Inventory Model", () => {
 		});
 
 		it("should not include card containers", async () => {
-			await Inventory.create({
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Display",
-					cardInventory: [],
-				},
-			});
+			await Inventory.create(inventoryFixtures.emptyContainer(testStore._id));
 
 			const quantities = await Inventory.getFloorDisplayQuantities(
 				testStore._id
@@ -1047,12 +736,9 @@ describe("Inventory Model", () => {
 
 	describe("Inventory Updates", () => {
 		it("should update quantity", async () => {
-			const inventory = await Inventory.create({
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 50,
-				location: "floor",
-			});
+			const inventory = await Inventory.create(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id)
+			);
 
 			inventory.quantity = 75;
 			await inventory.save();
@@ -1062,28 +748,21 @@ describe("Inventory Model", () => {
 		});
 
 		it("should update location", async () => {
-			const inventory = await Inventory.create({
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 50,
-				location: "floor",
-			});
+			const inventory = await Inventory.create(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id)
+			);
 
-			inventory.location = "back";
+			inventory.location = LOCATIONS.BACK;
 			await inventory.save();
 
 			const updated = await Inventory.findById(inventory._id);
-			expect(updated.location).toBe("back");
+			expect(updated.location).toBe(LOCATIONS.BACK);
 		});
 
 		it("should update minStockLevel", async () => {
-			const inventory = await Inventory.create({
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 50,
-				location: "floor",
-				minStockLevel: 10,
-			});
+			const inventory = await Inventory.create(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id)
+			);
 
 			inventory.minStockLevel = 20;
 			await inventory.save();
@@ -1093,12 +772,9 @@ describe("Inventory Model", () => {
 		});
 
 		it("should update lastRestocked", async () => {
-			const inventory = await Inventory.create({
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 50,
-				location: "floor",
-			});
+			const inventory = await Inventory.create(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id)
+			);
 
 			const restockDate = new Date("2025-01-01");
 			inventory.lastRestocked = restockDate;
@@ -1109,15 +785,9 @@ describe("Inventory Model", () => {
 		});
 
 		it("should add cards to container cardInventory", async () => {
-			const inventory = await Inventory.create({
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "Display A",
-					cardInventory: [],
-				},
-			});
+			const inventory = await Inventory.create(
+				inventoryFixtures.emptyContainer(testStore._id)
+			);
 
 			inventory.cardContainer.cardInventory.push({
 				productId: cardProduct1._id,
@@ -1131,12 +801,9 @@ describe("Inventory Model", () => {
 		});
 
 		it("should deactivate inventory", async () => {
-			const inventory = await Inventory.create({
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 50,
-				location: "floor",
-			});
+			const inventory = await Inventory.create(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id)
+			);
 
 			inventory.isActive = false;
 			await inventory.save();
@@ -1148,29 +815,190 @@ describe("Inventory Model", () => {
 
 	describe("Field Trimming", () => {
 		it("should trim whitespace from notes", async () => {
-			const inventory = await Inventory.create({
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				quantity: 50,
-				location: "floor",
-				notes: "  Test notes  ",
-			});
+			const inventory = await Inventory.create(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					notes: "  Test notes  ",
+				})
+			);
 
 			expect(inventory.notes).toBe("Test notes");
 		});
 
 		it("should trim whitespace from containerName", async () => {
-			const inventory = await Inventory.create({
-				storeId: testStore._id,
-				location: "floor",
-				cardContainer: {
-					containerType: "display-case",
-					containerName: "  Display Case A  ",
-					cardInventory: [],
-				},
-			});
+			const inventory = await Inventory.create(
+				inventoryFixtures.emptyContainer(testStore._id, {
+					cardContainer: {
+						containerType: CONTAINER_TYPES.DISPLAY_CASE,
+						containerName: "  Display Case A  ",
+						cardInventory: [],
+					},
+				})
+			);
 
 			expect(inventory.cardContainer.containerName).toBe("Display Case A");
+		});
+	});
+
+	describe("Edge Cases - Quantity Boundaries", () => {
+		it("should accept zero quantity", async () => {
+			const inventory = await Inventory.create(
+				inventoryFixtures.outOfStock(testStore._id, boosterProduct._id)
+			);
+
+			expect(inventory.quantity).toBe(0);
+		});
+
+		it("should accept quantity of 1", async () => {
+			const inventory = await Inventory.create(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					quantity: 1,
+				})
+			);
+
+			expect(inventory.quantity).toBe(1);
+		});
+
+		it("should accept very large quantity", async () => {
+			const inventory = await Inventory.create(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					quantity: boundaryFixtures.quantity.max,
+				})
+			);
+
+			expect(inventory.quantity).toBe(999999);
+		});
+
+		it("should fail on negative quantity", async () => {
+			await expect(
+				Inventory.create({
+					storeId: testStore._id,
+					productId: boosterProduct._id,
+					location: LOCATIONS.FLOOR,
+					quantity: -5,
+				})
+			).rejects.toThrow();
+		});
+	});
+
+	describe("Edge Cases - MinStockLevel Boundaries", () => {
+		it("should default minStockLevel to 0", async () => {
+			const inventory = await Inventory.create({
+				storeId: testStore._id,
+				productId: boosterProduct._id,
+				location: LOCATIONS.FLOOR,
+				quantity: 10,
+			});
+
+			expect(inventory.minStockLevel).toBe(0);
+		});
+
+		it("should accept minStockLevel of 1", async () => {
+			const inventory = await Inventory.create(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					minStockLevel: 1,
+				})
+			);
+
+			expect(inventory.minStockLevel).toBe(1);
+		});
+
+		it("should accept large minStockLevel", async () => {
+			const inventory = await Inventory.create(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					minStockLevel: 1000,
+				})
+			);
+
+			expect(inventory.minStockLevel).toBe(1000);
+		});
+
+		it("should fail on negative minStockLevel", async () => {
+			await expect(
+				Inventory.create({
+					storeId: testStore._id,
+					productId: boosterProduct._id,
+					location: LOCATIONS.FLOOR,
+					quantity: 10,
+					minStockLevel: -5,
+				})
+			).rejects.toThrow();
+		});
+	});
+
+	describe("Edge Cases - Card Container Boundaries", () => {
+		it("should accept empty cardInventory array", async () => {
+			const inventory = await Inventory.create(
+				inventoryFixtures.emptyContainer(testStore._id)
+			);
+
+			expect(inventory.cardContainer.cardInventory).toHaveLength(0);
+			expect(inventory.totalCards).toBe(0);
+		});
+
+		it("should accept single card in container", async () => {
+			const inventory = await Inventory.create(
+				inventoryFixtures.displayCase(testStore._id, [
+					{
+						productId: cardProduct1._id,
+						quantity: 1,
+					},
+				])
+			);
+
+			expect(inventory.cardContainer.cardInventory).toHaveLength(1);
+			expect(inventory.totalCards).toBe(1);
+		});
+
+		it("should accept many cards in container", async () => {
+			const inventory = await Inventory.create(
+				inventoryFixtures.bulkBin(testStore._id, [
+					{ productId: cardProduct1._id, quantity: 500 },
+					{ productId: cardProduct2._id, quantity: 300 },
+				])
+			);
+
+			expect(inventory.totalCards).toBe(800);
+		});
+
+		it("should fail if cardInventory item has zero quantity", async () => {
+			await expect(
+				Inventory.create(
+					inventoryFixtures.displayCase(testStore._id, [
+						{
+							productId: cardProduct1._id,
+							quantity: 0,
+						},
+					])
+				)
+			).rejects.toThrow();
+		});
+	});
+
+	describe("Edge Cases - Location Validation", () => {
+		it("should accept 'floor' location", async () => {
+			const inventory = await Inventory.create(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id)
+			);
+
+			expect(inventory.location).toBe(LOCATIONS.FLOOR);
+		});
+
+		it("should accept 'back' location", async () => {
+			const inventory = await Inventory.create(
+				inventoryFixtures.back(testStore._id, boosterProduct._id)
+			);
+
+			expect(inventory.location).toBe(LOCATIONS.BACK);
+		});
+
+		it("should fail on invalid location", async () => {
+			await expect(
+				Inventory.create(
+					inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+						location: "invalid-location",
+					})
+				)
+			).rejects.toThrow();
 		});
 	});
 });

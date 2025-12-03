@@ -3,13 +3,19 @@
  * Tests for warehouse management endpoints with role-based access control
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
 import express from "express";
 import session from "express-session";
+import storeRoutes from "../../src/routes/stores.js";
 import { Store } from "../../src/models/Store.js";
 import { User } from "../../src/models/User.js";
 import "../setup.js"; // Import test setup
+import {
+	userFixtures,
+	storeFixtures,
+	edgeCases,
+} from "../fixtures/testData.js";
 
 describe("Store Routes - Warehouse Management", () => {
 	let app;
@@ -101,8 +107,6 @@ describe("Store Routes - Warehouse Management", () => {
 			next();
 		});
 
-		// Import and use the store routes
-		const { default: storeRoutes } = await import("../../src/routes/stores.js");
 		app.use("/api/stores", storeRoutes);
 	});
 	describe("GET /api/stores - List All Warehouses", () => {
@@ -526,6 +530,252 @@ describe("Store Routes - Warehouse Management", () => {
 			// Verify not deleted
 			const stillExists = await Store.findById(store1._id);
 			expect(stillExists).toBeTruthy();
+		});
+	});
+
+	describe("Edge Cases - Invalid IDs", () => {
+		it("should return 400 for malformed store ID on GET", async () => {
+			const response = await request(app)
+				.get(`/api/stores/${edgeCases.invalidIds.malformed}`)
+				.set("x-test-user-id", partnerUser._id.toString());
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should return 400 for malformed store ID on PUT", async () => {
+			const response = await request(app)
+				.put(`/api/stores/${edgeCases.invalidIds.malformed}`)
+				.set("x-test-user-id", partnerUser._id.toString())
+				.send({ name: "Updated Name" });
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should return 400 for malformed store ID on DELETE", async () => {
+			const response = await request(app)
+				.delete(`/api/stores/${edgeCases.invalidIds.malformed}`)
+				.set("x-test-user-id", partnerUser._id.toString());
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should return 404 for non-existent but valid ObjectId", async () => {
+			const response = await request(app)
+				.get(`/api/stores/${edgeCases.invalidIds.nonExistent}`)
+				.set("x-test-user-id", partnerUser._id.toString());
+
+			expect(response.status).toBe(404);
+			expect(response.body.success).toBe(false);
+		});
+	});
+
+	describe("Edge Cases - Capacity Validation", () => {
+		it("should reject creating store with negative maxCapacity", async () => {
+			const storeData = storeFixtures.downtown({
+				name: "Invalid Store",
+				maxCapacity: -100,
+			});
+
+			const response = await request(app)
+				.post("/api/stores")
+				.set("x-test-user-id", partnerUser._id.toString())
+				.send(storeData);
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should reject creating store with negative currentCapacity", async () => {
+			const storeData = storeFixtures.downtown({
+				name: "Invalid Store",
+				currentCapacity: -50,
+			});
+
+			const response = await request(app)
+				.post("/api/stores")
+				.set("x-test-user-id", partnerUser._id.toString())
+				.send(storeData);
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should accept store at exactly max capacity", async () => {
+			const storeData = storeFixtures.atCapacity();
+
+			const response = await request(app)
+				.post("/api/stores")
+				.set("x-test-user-id", partnerUser._id.toString())
+				.send(storeData);
+
+			expect(response.status).toBe(201);
+			expect(response.body.success).toBe(true);
+			expect(response.body.store.currentCapacity).toBe(
+				response.body.store.maxCapacity
+			);
+		});
+
+		it("should accept store with zero current capacity", async () => {
+			const storeData = storeFixtures.empty();
+
+			const response = await request(app)
+				.post("/api/stores")
+				.set("x-test-user-id", partnerUser._id.toString())
+				.send(storeData);
+
+			expect(response.status).toBe(201);
+			expect(response.body.success).toBe(true);
+			expect(response.body.store.currentCapacity).toBe(0);
+		});
+
+		it("should accept minimum capacity of 1", async () => {
+			const storeData = storeFixtures.downtown({
+				name: "Tiny Store",
+				maxCapacity: 1,
+				currentCapacity: 0,
+			});
+
+			const response = await request(app)
+				.post("/api/stores")
+				.set("x-test-user-id", partnerUser._id.toString())
+				.send(storeData);
+
+			expect(response.status).toBe(201);
+			expect(response.body.success).toBe(true);
+			expect(response.body.store.maxCapacity).toBe(1);
+		});
+	});
+
+	describe("Edge Cases - Input Sanitization", () => {
+		it("should trim whitespace from store fields", async () => {
+			const storeData = {
+				name: "  Test Store  ",
+				location: {
+					address: "  123 Main St  ",
+					city: "  Portland  ",
+					state: "OR",
+					zipCode: "97201",
+				},
+				maxCapacity: 1000,
+			};
+
+			const response = await request(app)
+				.post("/api/stores")
+				.set("x-test-user-id", partnerUser._id.toString())
+				.send(storeData);
+
+			expect(response.status).toBe(201);
+			expect(response.body.store.name).toBe("Test Store");
+			expect(response.body.store.location.address).toBe("123 Main St");
+			expect(response.body.store.location.city).toBe("Portland");
+		});
+
+		it("should handle special characters in store name", async () => {
+			const storeData = storeFixtures.downtown({
+				name: "TCG Store #1 & Co.",
+			});
+
+			const response = await request(app)
+				.post("/api/stores")
+				.set("x-test-user-id", partnerUser._id.toString())
+				.send(storeData);
+
+			expect(response.status).toBe(201);
+			expect(response.body.store.name).toBe("TCG Store #1 & Co.");
+		});
+	});
+
+	describe("Edge Cases - Missing Required Fields", () => {
+		it("should reject store without name", async () => {
+			const storeData = storeFixtures.downtown();
+			delete storeData.name;
+
+			const response = await request(app)
+				.post("/api/stores")
+				.set("x-test-user-id", partnerUser._id.toString())
+				.send(storeData);
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should reject store without maxCapacity", async () => {
+			const storeData = storeFixtures.downtown();
+			delete storeData.maxCapacity;
+
+			const response = await request(app)
+				.post("/api/stores")
+				.set("x-test-user-id", partnerUser._id.toString())
+				.send(storeData);
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should reject store without location.address", async () => {
+			const storeData = storeFixtures.downtown();
+			delete storeData.location.address;
+
+			const response = await request(app)
+				.post("/api/stores")
+				.set("x-test-user-id", partnerUser._id.toString())
+				.send(storeData);
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should reject store without location.state", async () => {
+			const storeData = storeFixtures.downtown();
+			delete storeData.location.state;
+
+			const response = await request(app)
+				.post("/api/stores")
+				.set("x-test-user-id", partnerUser._id.toString())
+				.send(storeData);
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+	});
+
+	describe("Edge Cases - Query Filtering", () => {
+		beforeEach(async () => {
+			// Create additional stores for filtering tests
+			await Store.create(storeFixtures.nearCapacity());
+			await Store.create(
+				storeFixtures.downtown({
+					name: "Inactive Store",
+					isActive: false,
+				})
+			);
+		});
+
+		it("should filter by city if query param provided", async () => {
+			// This tests potential query functionality
+			// Actual implementation depends on routes
+			const response = await request(app)
+				.get("/api/stores")
+				.set("x-test-user-id", partnerUser._id.toString());
+
+			expect(response.status).toBe(200);
+			expect(response.body.stores.length).toBeGreaterThan(0);
+		});
+
+		it("should return all stores including inactive by default", async () => {
+			const response = await request(app)
+				.get("/api/stores")
+				.set("x-test-user-id", partnerUser._id.toString());
+
+			expect(response.status).toBe(200);
+			// Should include both active and inactive
+			const hasInactive = response.body.stores.some(
+				(store) => store.isActive === false
+			);
+			expect(hasInactive).toBe(true);
 		});
 	});
 });

@@ -3,6 +3,7 @@
  * Protects routes and enforces role-based access control
  */
 
+const { USER_ROLES } = require("../constants/enums");
 const { User } = require("../models/User");
 
 /**
@@ -31,7 +32,7 @@ async function requireAuth(req, res, next) {
 	} catch (error) {
 		return res.status(500).json({
 			success: false,
-			message: "Error authenticating user",
+			message: "Error authenticating user: " + error.message,
 		});
 	}
 }
@@ -73,12 +74,15 @@ function requireStoreAccess(req, res, next) {
 	}
 
 	// Partners can access any store
-	if (req.user.role === "partner") {
+	if (req.user.role === USER_ROLES.PARTNER) {
 		return next();
 	}
 
 	// Store managers and employees can only access their assigned store
-	if (req.user.role === "store-manager" || req.user.role === "employee") {
+	if (
+		req.user.role === USER_ROLES.STORE_MANAGER ||
+		req.user.role === USER_ROLES.EMPLOYEE
+	) {
 		const requestedStoreId = req.params.id;
 		const assignedStoreId =
 			typeof req.user.assignedStoreId === "object"
@@ -106,14 +110,18 @@ function requireStoreAccess(req, res, next) {
  * Require partner role
  */
 function requirePartner(req, res, next) {
-	return requireRole(["partner"])(req, res, next);
+	return requireRole([USER_ROLES.PARTNER])(req, res, next);
 }
 
 /**
  * Require store manager or partner
  */
 function requireManager(req, res, next) {
-	return requireRole(["store-manager", "partner"])(req, res, next);
+	return requireRole([USER_ROLES.STORE_MANAGER, USER_ROLES.PARTNER])(
+		req,
+		res,
+		next
+	);
 }
 
 module.exports = {

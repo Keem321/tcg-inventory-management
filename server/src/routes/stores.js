@@ -12,6 +12,7 @@ const {
 	requireStoreAccess,
 } = require("../middleware/auth");
 const mongoose = require("mongoose");
+const { USER_ROLES } = require("../constants/enums");
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ const router = express.Router();
 router.get(
 	"/",
 	requireAuth,
-	requireRole(["partner", "store-manager"]),
+	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
 	async (req, res) => {
 		try {
 			const stores = await Store.find().sort({ name: 1 });
@@ -56,7 +57,7 @@ router.get(
 router.get(
 	"/:id",
 	requireAuth,
-	requireRole(["partner", "store-manager"]),
+	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
 	requireStoreAccess,
 	async (req, res) => {
 		try {
@@ -103,68 +104,73 @@ router.get(
  * POST /api/stores
  * Create new store (partners only)
  */
-router.post("/", requireAuth, requireRole(["partner"]), async (req, res) => {
-	try {
-		const { name, location, maxCapacity } = req.body;
+router.post(
+	"/",
+	requireAuth,
+	requireRole([USER_ROLES.PARTNER]),
+	async (req, res) => {
+		try {
+			const { name, location, maxCapacity } = req.body;
 
-		// Validate required fields
-		if (!name || !location || !maxCapacity) {
-			return res.status(400).json({
+			// Validate required fields
+			if (!name || !location || !maxCapacity) {
+				return res.status(400).json({
+					success: false,
+					message: "Missing required fields: name, location, maxCapacity",
+				});
+			}
+
+			// Validate location fields
+			if (
+				!location.address ||
+				!location.city ||
+				!location.state ||
+				!location.zipCode
+			) {
+				return res.status(400).json({
+					success: false,
+					message:
+						"Missing required location fields: address, city, state, zipCode",
+				});
+			}
+
+			// Validate maxCapacity
+			if (maxCapacity <= 0) {
+				return res.status(400).json({
+					success: false,
+					message: "Max capacity must be greater than 0",
+				});
+			}
+
+			const store = new Store({
+				name,
+				location,
+				maxCapacity,
+			});
+
+			await store.save();
+
+			res.status(201).json({
+				success: true,
+				store: {
+					_id: store._id,
+					name: store.name,
+					location: store.location,
+					fullAddress: store.fullAddress,
+					maxCapacity: store.maxCapacity,
+					currentCapacity: store.currentCapacity,
+					isActive: store.isActive,
+				},
+			});
+		} catch (error) {
+			console.error("Create store error:", error);
+			res.status(400).json({
 				success: false,
-				message: "Missing required fields: name, location, maxCapacity",
+				message: error.message || "Error creating store",
 			});
 		}
-
-		// Validate location fields
-		if (
-			!location.address ||
-			!location.city ||
-			!location.state ||
-			!location.zipCode
-		) {
-			return res.status(400).json({
-				success: false,
-				message:
-					"Missing required location fields: address, city, state, zipCode",
-			});
-		}
-
-		// Validate maxCapacity
-		if (maxCapacity <= 0) {
-			return res.status(400).json({
-				success: false,
-				message: "Max capacity must be greater than 0",
-			});
-		}
-
-		const store = new Store({
-			name,
-			location,
-			maxCapacity,
-		});
-
-		await store.save();
-
-		res.status(201).json({
-			success: true,
-			store: {
-				_id: store._id,
-				name: store.name,
-				location: store.location,
-				fullAddress: store.fullAddress,
-				maxCapacity: store.maxCapacity,
-				currentCapacity: store.currentCapacity,
-				isActive: store.isActive,
-			},
-		});
-	} catch (error) {
-		console.error("Create store error:", error);
-		res.status(400).json({
-			success: false,
-			message: error.message || "Error creating store",
-		});
 	}
-});
+);
 
 /**
  * PUT /api/stores/:id
@@ -173,7 +179,7 @@ router.post("/", requireAuth, requireRole(["partner"]), async (req, res) => {
 router.put(
 	"/:id",
 	requireAuth,
-	requireRole(["partner", "store-manager"]),
+	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
 	requireStoreAccess,
 	async (req, res) => {
 		try {
@@ -241,7 +247,7 @@ router.put(
 router.delete(
 	"/:id",
 	requireAuth,
-	requireRole(["partner"]),
+	requireRole([USER_ROLES.PARTNER]),
 	async (req, res) => {
 		try {
 			// Validate ObjectId format

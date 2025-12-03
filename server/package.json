@@ -6,7 +6,9 @@
 	"scripts": {
 		"dev": "nodemon index.js",
 		"start": "node index.js",
-		"test": "vitest"
+		"test": "vitest",
+		"lint": "eslint src tests",
+		"lint:fix": "eslint src tests --fix"
 	},
 	"keywords": [],
 	"author": "",

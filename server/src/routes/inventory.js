@@ -11,6 +11,7 @@ const {
 	requireStoreAccess,
 } = require("../middleware/auth");
 const mongoose = require("mongoose");
+const { USER_ROLES, LOCATIONS } = require("../constants/enums");
 
 const router = express.Router();
 
@@ -20,33 +21,38 @@ const router = express.Router();
  * Query params:
  *   - location: filter by location (floor, back)
  */
-router.get("/", requireAuth, requireRole(["partner"]), async (req, res) => {
-	try {
-		const { location } = req.query;
+router.get(
+	"/",
+	requireAuth,
+	requireRole([USER_ROLES.PARTNER]),
+	async (req, res) => {
+		try {
+			const { location } = req.query;
 
-		// Build query
-		const query = { isActive: true };
-		if (location && ["floor", "back"].includes(location)) {
-			query.location = location;
+			// Build query
+			const query = { isActive: true };
+			if (location && [LOCATIONS.FLOOR, LOCATIONS.BACK].includes(location)) {
+				query.location = location;
+			}
+
+			const inventory = await Inventory.find(query)
+				.populate("storeId", "name location fullAddress")
+				.populate("productId", "name sku productType brand")
+				.sort({ storeId: 1, location: 1, productId: 1 });
+
+			res.json({
+				success: true,
+				inventory,
+			});
+		} catch (error) {
+			console.error("Get all inventory error:", error);
+			res.status(500).json({
+				success: false,
+				message: "Error fetching inventory",
+			});
 		}
-
-		const inventory = await Inventory.find(query)
-			.populate("storeId", "name location fullAddress")
-			.populate("productId", "name sku productType brand")
-			.sort({ storeId: 1, location: 1, productId: 1 });
-
-		res.json({
-			success: true,
-			inventory,
-		});
-	} catch (error) {
-		console.error("Get all inventory error:", error);
-		res.status(500).json({
-			success: false,
-			message: "Error fetching inventory",
-		});
 	}
-});
+);
 
 /**
  * GET /api/inventory/store/:id
@@ -62,7 +68,11 @@ router.get("/", requireAuth, requireRole(["partner"]), async (req, res) => {
 router.get(
 	"/store/:id",
 	requireAuth,
-	requireRole(["partner", "store-manager", "employee"]),
+	requireRole([
+		USER_ROLES.PARTNER,
+		USER_ROLES.STORE_MANAGER,
+		USER_ROLES.EMPLOYEE,
+	]),
 	requireStoreAccess,
 	async (req, res) => {
 		try {
@@ -82,7 +92,7 @@ router.get(
 				isActive: true,
 			};
 
-			if (location && ["floor", "back"].includes(location)) {
+			if (location && [LOCATIONS.FLOOR, LOCATIONS.BACK].includes(location)) {
 				query.location = location;
 			}
 

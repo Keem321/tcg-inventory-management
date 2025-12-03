@@ -5,6 +5,7 @@
 
 const bcrypt = require("bcrypt");
 const { User } = require("../models/User");
+const { USER_ROLES } = require("../constants/enums");
 
 const SALT_ROUNDS = 10;
 
@@ -54,10 +55,10 @@ async function seedUsers() {
 
 	// Create a partner
 	const partner = await createUser({
-		username: "partner",
+		username: "partner1",
 		email: "partner@tcg.com",
 		password: "password123",
-		role: "partner",
+		role: USER_ROLES.PARTNER,
 		firstName: "Alex",
 		lastName: "Partner",
 	});

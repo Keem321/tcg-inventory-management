@@ -45,6 +45,12 @@ const storeSchema = new mongoose.Schema(
 			type: Number,
 			default: 0,
 			min: [0, "Current capacity cannot be negative"],
+			validate: {
+				validator: function (value) {
+					return value <= this.maxCapacity;
+				},
+				message: "Current capacity cannot exceed max capacity",
+			},
 		},
 		isActive: {
 			type: Boolean,
