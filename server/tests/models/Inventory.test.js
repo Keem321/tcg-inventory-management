@@ -870,24 +870,22 @@ describe("Inventory Model", () => {
 
 		it("should fail on negative quantity", async () => {
 			await expect(
-				Inventory.create({
-					storeId: testStore._id,
-					productId: boosterProduct._id,
-					location: LOCATIONS.FLOOR,
-					quantity: -5,
-				})
+				Inventory.create(
+					inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+						quantity: -5,
+					})
+				)
 			).rejects.toThrow();
 		});
 	});
 
 	describe("Edge Cases - MinStockLevel Boundaries", () => {
 		it("should default minStockLevel to 0", async () => {
-			const inventory = await Inventory.create({
-				storeId: testStore._id,
-				productId: boosterProduct._id,
-				location: LOCATIONS.FLOOR,
-				quantity: 10,
-			});
+			const inventory = await Inventory.create(
+				inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+					minStockLevel: undefined,
+				})
+			);
 
 			expect(inventory.minStockLevel).toBe(0);
 		});
@@ -914,13 +912,11 @@ describe("Inventory Model", () => {
 
 		it("should fail on negative minStockLevel", async () => {
 			await expect(
-				Inventory.create({
-					storeId: testStore._id,
-					productId: boosterProduct._id,
-					location: LOCATIONS.FLOOR,
-					quantity: 10,
-					minStockLevel: -5,
-				})
+				Inventory.create(
+					inventoryFixtures.floor(testStore._id, boosterProduct._id, {
+						minStockLevel: -5,
+					})
+				)
 			).rejects.toThrow();
 		});
 	});
