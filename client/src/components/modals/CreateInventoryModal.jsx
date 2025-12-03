@@ -3,6 +3,7 @@
  * Modal for adding new inventory to a store
  */
 
+import { useState } from "react";
 import { Modal, Form, Button, Alert, Badge, Row, Col } from "react-bootstrap";
 
 function CreateInventoryModal({
@@ -17,8 +18,77 @@ function CreateInventoryModal({
 	setNewInventory,
 	storeCapacity,
 	onSubmit,
+	onCheckDuplicate,
 	error,
 }) {
+	const [duplicateWarning, setDuplicateWarning] = useState(null);
+	const [confirmDifferentLocation, setConfirmDifferentLocation] =
+		useState(false);
+	const [checking, setChecking] = useState(false);
+
+	const handleProductSelect = async (product) => {
+		setSelectedProduct(product);
+		setDuplicateWarning(null);
+		setConfirmDifferentLocation(false);
+
+		// Check for duplicates when product is selected
+		if (onCheckDuplicate && newInventory.location) {
+			await checkDuplicates(product._id, newInventory.location);
+		}
+	};
+
+	const handleLocationChange = async (location) => {
+		setNewInventory({
+			...newInventory,
+			location,
+		});
+		setDuplicateWarning(null);
+		setConfirmDifferentLocation(false);
+
+		// Check for duplicates when location changes
+		if (selectedProduct && onCheckDuplicate) {
+			await checkDuplicates(selectedProduct._id, location);
+		}
+	};
+
+	const checkDuplicates = async (productId, location) => {
+		if (!onCheckDuplicate) return;
+
+		setChecking(true);
+		try {
+			const result = await onCheckDuplicate(productId, location);
+
+			if (result.exactMatch) {
+				setDuplicateWarning({
+					type: "exact",
+					message: `This product already exists in ${result.exactMatch.location} with quantity ${result.exactMatch.quantity}. Adding more will update that record.`,
+				});
+			} else if (result.differentLocation) {
+				setDuplicateWarning({
+					type: "different",
+					message: `This product already exists in ${result.differentLocation.location} (quantity: ${result.differentLocation.quantity}). You are about to add it to a different location.`,
+				});
+			}
+		} catch (err) {
+			console.error("Error checking duplicates:", err);
+		} finally {
+			setChecking(false);
+		}
+	};
+
+	const handleSubmit = () => {
+		if (duplicateWarning?.type === "different" && !confirmDifferentLocation) {
+			return;
+		}
+		onSubmit();
+	};
+
+	const handleClose = () => {
+		setDuplicateWarning(null);
+		setConfirmDifferentLocation(false);
+		onHide();
+	};
+
 	const filteredProducts = products.filter((product) => {
 		if (!productSearch) return true;
 		const search = productSearch.toLowerCase();
@@ -30,7 +100,7 @@ function CreateInventoryModal({
 	});
 
 	return (
-		<Modal show={show} onHide={onHide} size="lg">
+		<Modal show={show} onHide={handleClose} size="lg">
 			<Modal.Header closeButton>
 				<Modal.Title>Add Inventory</Modal.Title>
 			</Modal.Header>
@@ -38,6 +108,29 @@ function CreateInventoryModal({
 				{error && (
 					<Alert variant="danger" className="mb-3">
 						{error}
+					</Alert>
+				)}
+
+				{duplicateWarning && (
+					<Alert
+						variant={duplicateWarning.type === "exact" ? "info" : "warning"}
+						className="mb-3"
+					>
+						<Alert.Heading>
+							{duplicateWarning.type === "exact"
+								? "Duplicate Detected"
+								: "Warning: Different Location"}
+						</Alert.Heading>
+						<p className="mb-0">{duplicateWarning.message}</p>
+						{duplicateWarning.type === "different" && (
+							<Form.Check
+								type="checkbox"
+								className="mt-2"
+								label="I confirm I want to add this product to a different location"
+								checked={confirmDifferentLocation}
+								onChange={(e) => setConfirmDifferentLocation(e.target.checked)}
+							/>
+						)}
 					</Alert>
 				)}
 
@@ -76,7 +169,7 @@ function CreateInventoryModal({
 										className={`list-group-item list-group-item-action ${
 											selectedProduct?._id === product._id ? "active" : ""
 										}`}
-										onClick={() => setSelectedProduct(product)}
+										onClick={() => handleProductSelect(product)}
 									>
 										<div className="d-flex justify-content-between">
 											<div>
@@ -125,8 +218,10 @@ function CreateInventoryModal({
 										}
 									/>
 									<Form.Text className="text-muted">
-										Will use {selectedProduct.unitSize * newInventory.quantity}{" "}
+										totals {selectedProduct.unitSize * newInventory.quantity}{" "}
 										capacity units
+										{duplicateWarning?.type === "exact" &&
+											" (will be added to existing stock)"}
 									</Form.Text>
 								</Form.Group>
 							</Col>
@@ -135,12 +230,7 @@ function CreateInventoryModal({
 									<Form.Label>Location *</Form.Label>
 									<Form.Select
 										value={newInventory.location}
-										onChange={(e) =>
-											setNewInventory({
-												...newInventory,
-												location: e.target.value,
-											})
-										}
+										onChange={(e) => handleLocationChange(e.target.value)}
 									>
 										<option value="floor">Floor</option>
 										<option value="back">Back</option>
@@ -180,15 +270,23 @@ function CreateInventoryModal({
 				)}
 			</Modal.Body>
 			<Modal.Footer>
-				<Button variant="secondary" onClick={onHide}>
+				<Button variant="secondary" onClick={handleClose}>
 					Cancel
 				</Button>
 				<Button
 					variant="primary"
-					onClick={onSubmit}
-					disabled={!selectedProduct || Number(newInventory.quantity) <= 0}
+					onClick={handleSubmit}
+					disabled={
+						!selectedProduct ||
+						Number(newInventory.quantity) <= 0 ||
+						(duplicateWarning?.type === "different" &&
+							!confirmDifferentLocation) ||
+						checking
+					}
 				>
-					Add Inventory
+					{duplicateWarning?.type === "exact"
+						? "Update Quantity"
+						: "Add Inventory"}
 				</Button>
 			</Modal.Footer>
 		</Modal>

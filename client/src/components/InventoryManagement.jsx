@@ -28,7 +28,7 @@ import DeleteInventoryModal from "./modals/DeleteInventoryModal";
  * Inventory Management Component
  * Displays and manages inventory across stores with role-based access
  */
-function InventoryManagement({ user, onBack }) {
+function InventoryManagement({ user }) {
 	const [inventory, setInventory] = useState([]);
 	const [stores, setStores] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -202,6 +202,26 @@ function InventoryManagement({ user, onBack }) {
 		}
 	};
 
+	const handleCheckDuplicate = async (productId, location) => {
+		try {
+			const targetStoreId = isPartner ? selectedStore : user.assignedStoreId;
+
+			if (!targetStoreId || targetStoreId === "all") {
+				return { exactMatch: null, differentLocation: null };
+			}
+
+			const result = await inventoryAPI.checkDuplicate(
+				targetStoreId,
+				productId,
+				location
+			);
+			return result;
+		} catch (err) {
+			console.error("Error checking duplicate:", err);
+			return { exactMatch: null, differentLocation: null };
+		}
+	};
+
 	const handleCreateInventory = async () => {
 		try {
 			setError(null);
@@ -228,7 +248,7 @@ function InventoryManagement({ user, onBack }) {
 				return;
 			}
 
-			await inventoryAPI.createInventory({
+			const response = await inventoryAPI.createInventory({
 				storeId: targetStoreId,
 				productId: selectedProduct._id,
 				quantity: parseInt(newInventory.quantity),
@@ -237,7 +257,14 @@ function InventoryManagement({ user, onBack }) {
 				notes: newInventory.notes || undefined,
 			});
 
-			setSuccess("Inventory created successfully");
+			if (response.merged) {
+				setSuccess(
+					`Inventory updated - added ${newInventory.quantity} units to existing stock`
+				);
+			} else {
+				setSuccess("Inventory created successfully");
+			}
+
 			setShowCreateModal(false);
 			setSelectedProduct(null);
 			setNewInventory({
@@ -334,12 +361,6 @@ function InventoryManagement({ user, onBack }) {
 
 	return (
 		<Container className="mt-4">
-			{onBack && (
-				<Button variant="link" onClick={onBack} className="mb-3 p-0">
-					← Back to Dashboard
-				</Button>
-			)}
-
 			<div className="mb-4">
 				<h2>Inventory Management</h2>
 				<p className="text-muted">
@@ -662,6 +683,7 @@ function InventoryManagement({ user, onBack }) {
 				setNewInventory={setNewInventory}
 				storeCapacity={storeCapacity}
 				onSubmit={handleCreateInventory}
+				onCheckDuplicate={handleCheckDuplicate}
 				error={error}
 			/>
 

@@ -18,6 +18,80 @@ const { USER_ROLES, LOCATIONS } = require("../constants/enums");
 const router = express.Router();
 
 /**
+ * POST /api/inventory/check-duplicate
+ * Check if inventory already exists for a product at a store
+ * Body: { storeId, productId, location }
+ */
+router.post("/check-duplicate", requireAuth, async (req, res) => {
+	try {
+		const { storeId, productId, location } = req.body;
+
+		// Validate inputs
+		if (!storeId || !productId || !location) {
+			return res.status(400).json({
+				success: false,
+				message: "Store ID, Product ID, and location are required",
+			});
+		}
+
+		// Validate ObjectIds
+		if (
+			!mongoose.Types.ObjectId.isValid(storeId) ||
+			!mongoose.Types.ObjectId.isValid(productId)
+		) {
+			return res.status(400).json({
+				success: false,
+				message: "Invalid store or product ID",
+			});
+		}
+
+		// Check for exact match (same location)
+		const exactMatch = await Inventory.findOne({
+			storeId,
+			productId,
+			location,
+			isActive: true,
+		}).populate("productId", "name sku");
+
+		// Check for same product, different location
+		const otherLocation =
+			location === LOCATIONS.FLOOR ? LOCATIONS.BACK : LOCATIONS.FLOOR;
+		const differentLocation = await Inventory.findOne({
+			storeId,
+			productId,
+			location: otherLocation,
+			isActive: true,
+		}).populate("productId", "name sku");
+
+		res.json({
+			success: true,
+			exactMatch: exactMatch
+				? {
+						id: exactMatch._id,
+						location: exactMatch.location,
+						quantity: exactMatch.quantity,
+						productName: exactMatch.productId?.name,
+				  }
+				: null,
+			differentLocation: differentLocation
+				? {
+						id: differentLocation._id,
+						location: differentLocation.location,
+						quantity: differentLocation.quantity,
+						productName: differentLocation.productId?.name,
+				  }
+				: null,
+		});
+	} catch (error) {
+		console.error("Check duplicate inventory error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Server error checking for duplicates",
+		});
+	}
+});
+
+/**
  * GET /api/inventory
  * Get all inventory across all stores (partners only)
  * Query params:
@@ -187,10 +261,65 @@ router.post(
 				});
 			}
 
-			// Check capacity
+			// Check for existing inventory of this product at this store and location
+			const existingInventory = await Inventory.findOne({
+				storeId,
+				productId,
+				location,
+				isActive: true,
+			});
+
+			if (existingInventory) {
+				// Duplicate found - merge quantities instead of creating new record
+				const newQuantity = existingInventory.quantity + quantity;
+				const currentCapacity = await Inventory.calculateStoreCapacity(storeId);
+				const oldSpace = product.unitSize * existingInventory.quantity;
+				const newSpace = product.unitSize * newQuantity;
+				const spaceChange = newSpace - oldSpace;
+				const availableSpace = store.maxCapacity - currentCapacity;
+
+				if (spaceChange > availableSpace) {
+					return res.status(400).json({
+						success: false,
+						message: `Insufficient capacity. Required additional: ${spaceChange}, Available: ${availableSpace}`,
+					});
+				}
+
+				// Update existing inventory
+				existingInventory.quantity = newQuantity;
+				if (
+					minStockLevel !== undefined &&
+					minStockLevel > existingInventory.minStockLevel
+				) {
+					existingInventory.minStockLevel = minStockLevel;
+				}
+				if (notes) {
+					existingInventory.notes = notes;
+				}
+				await existingInventory.save();
+
+				// Update store capacity
+				const newCapacity = await Inventory.calculateStoreCapacity(storeId);
+				await Store.findByIdAndUpdate(storeId, {
+					currentCapacity: newCapacity,
+				});
+
+				const populated = await Inventory.findById(existingInventory._id)
+					.populate("storeId", "name location fullAddress")
+					.populate("productId", "name sku productType brand");
+
+				return res.status(200).json({
+					success: true,
+					inventory: populated,
+					merged: true,
+					message: `Inventory updated - added ${quantity} units to existing stock`,
+				});
+			}
+
+			// Check capacity for new inventory
 			const currentCapacity = await Inventory.calculateStoreCapacity(storeId);
 			const requiredSpace = product.unitSize * quantity;
-			const availableSpace = store.capacity - currentCapacity;
+			const availableSpace = store.maxCapacity - currentCapacity;
 
 			if (requiredSpace > availableSpace) {
 				return res.status(400).json({
@@ -199,7 +328,7 @@ router.post(
 				});
 			}
 
-			// Create inventory
+			// Create new inventory
 			const inventory = await Inventory.create({
 				storeId,
 				productId,
@@ -222,6 +351,7 @@ router.post(
 			res.status(201).json({
 				success: true,
 				inventory: populated,
+				merged: false,
 				message: "Inventory created successfully",
 			});
 		} catch (error) {
@@ -299,7 +429,7 @@ router.put(
 				const oldSpace = inventory.productId.unitSize * inventory.quantity;
 				const newSpace = inventory.productId.unitSize * quantity;
 				const spaceChange = newSpace - oldSpace;
-				const availableSpace = store.capacity - currentCapacity;
+				const availableSpace = store.maxCapacity - currentCapacity;
 
 				if (spaceChange > availableSpace) {
 					return res.status(400).json({

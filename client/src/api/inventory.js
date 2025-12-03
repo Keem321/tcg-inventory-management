@@ -50,6 +50,24 @@ export const inventoryAPI = {
 	},
 
 	/**
+	 * Check for duplicate inventory entries
+	 * @param {string} storeId - Store ID
+	 * @param {string} productId - Product ID
+	 * @param {string} location - Location (floor/back)
+	 * @returns {Promise<Object>} Duplicate check results
+	 */
+	checkDuplicate: async (storeId, productId, location) => {
+		const response = await axios.post(
+			`${API_URL}/api/inventory/check-duplicate`,
+			{ storeId, productId, location },
+			{
+				withCredentials: true,
+			}
+		);
+		return response.data;
+	},
+
+	/**
 	 * Create new inventory item
 	 * @param {Object} inventoryData - Inventory data
 	 * @returns {Promise<Object>} Created inventory

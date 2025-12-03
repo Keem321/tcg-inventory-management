@@ -1,7 +1,7 @@
-import { Container, Card, Badge, Button, Row, Col } from "react-bootstrap";
-import { authAPI } from "../api/auth";
+import { Container, Card, Badge, Row, Col } from "react-bootstrap";
 import { storeAPI } from "../api/stores";
 import { useState, useEffect } from "react";
+import Navigation from "./Navigation";
 import StoreManagement from "./StoreManagement";
 import InventoryManagement from "./InventoryManagement";
 import ProductManagement from "./ProductManagement";
@@ -28,15 +28,6 @@ function Dashboard({ user, onLogout }) {
 
 		fetchStore();
 	}, [user.assignedStoreId]);
-
-	const handleLogout = async () => {
-		try {
-			await authAPI.logout();
-			onLogout();
-		} catch (err) {
-			console.error("Logout error:", err);
-		}
-	};
 
 	const getRoleBadge = (role) => {
 		const roleConfig = {
@@ -66,160 +57,151 @@ function Dashboard({ user, onLogout }) {
 	// Render different views based on currentView state
 	if (currentView === "stores") {
 		return (
-			<StoreManagement
-				user={user}
-				onUnauthorized={() => setCurrentView("dashboard")}
-				onBack={() => setCurrentView("dashboard")}
-			/>
+			<>
+				<Navigation
+					user={user}
+					currentView={currentView}
+					onNavigate={setCurrentView}
+					onLogout={onLogout}
+				/>
+				<StoreManagement
+					user={user}
+					onUnauthorized={() => setCurrentView("dashboard")}
+				/>
+			</>
 		);
 	} else if (currentView === "inventory") {
 		return (
-			<InventoryManagement
-				user={user}
-				onUnauthorized={() => setCurrentView("dashboard")}
-				onBack={() => setCurrentView("dashboard")}
-			/>
+			<>
+				<Navigation
+					user={user}
+					currentView={currentView}
+					onNavigate={setCurrentView}
+					onLogout={onLogout}
+				/>
+				<InventoryManagement
+					user={user}
+					onUnauthorized={() => setCurrentView("dashboard")}
+				/>
+			</>
 		);
 	} else if (currentView === "products") {
 		return (
-			<ProductManagement
-				user={user}
-				onBack={() => setCurrentView("dashboard")}
-			/>
+			<>
+				<Navigation
+					user={user}
+					currentView={currentView}
+					onNavigate={setCurrentView}
+					onLogout={onLogout}
+				/>
+				<ProductManagement user={user} />
+			</>
 		);
 	}
 
 	// Otherwise render dashboard
 	return (
-		<Container className="py-5">
-			<Row className="mb-4">
-				<Col>
-					<h1>TCG Inventory Management</h1>
-				</Col>
-				<Col xs="auto">
-					<Button variant="outline-danger" onClick={handleLogout}>
-						Logout
-					</Button>
-				</Col>
-			</Row>
+		<>
+			<Navigation
+				user={user}
+				currentView={currentView}
+				onNavigate={setCurrentView}
+				onLogout={onLogout}
+			/>
+			<Container className="py-5">
+				<Row className="mb-4">
+					<Col>
+						<h1>Dashboard</h1>
+					</Col>
+				</Row>
 
-			<Card className="mb-4">
-				<Card.Body>
-					<Card.Title>
-						Welcome, {user.fullName}! {getRoleBadge(user.role)}
-					</Card.Title>
-					<Card.Text>{getRoleDescription(user.role)}</Card.Text>
+				<Card className="mb-4">
+					<Card.Body>
+						<Card.Title>
+							Welcome, {user.fullName}! {getRoleBadge(user.role)}
+						</Card.Title>
+						<Card.Text>{getRoleDescription(user.role)}</Card.Text>
 
-					<hr />
+						<hr />
 
-					<Row>
-						<Col md={6}>
-							<p className="mb-1">
-								<strong>Username:</strong> {user.username}
-							</p>
-							<p className="mb-1">
-								<strong>Email:</strong> {user.email}
-							</p>
-						</Col>
-						<Col md={6}>
-							<p className="mb-1">
-								<strong>Role:</strong> {user.role}
-							</p>
-							{loadingStore ? (
-								<p className="mb-1 text-muted">Loading store...</p>
-							) : store ? (
-								<>
-									<p className="mb-1">
-										<strong>Assigned Store:</strong> {store.name}
-									</p>
-									<p className="mb-1 text-muted small">{store.fullAddress}</p>
-								</>
-							) : user.assignedStoreId ? (
-								<p className="mb-1 text-muted">Store info unavailable</p>
-							) : (
+						<Row>
+							<Col md={6}>
 								<p className="mb-1">
-									<strong>Access:</strong> All Stores
+									<strong>Username:</strong> {user.username}
 								</p>
-							)}
-						</Col>
-					</Row>
-				</Card.Body>
-			</Card>
+								<p className="mb-1">
+									<strong>Email:</strong> {user.email}
+								</p>
+							</Col>
+							<Col md={6}>
+								<p className="mb-1">
+									<strong>Role:</strong> {user.role}
+								</p>
+								{loadingStore ? (
+									<p className="mb-1 text-muted">Loading store...</p>
+								) : store ? (
+									<>
+										<p className="mb-1">
+											<strong>Assigned Store:</strong> {store.name}
+										</p>
+										<p className="mb-1 text-muted small">{store.fullAddress}</p>
+									</>
+								) : user.assignedStoreId ? (
+									<p className="mb-1 text-muted">Store info unavailable</p>
+								) : (
+									<p className="mb-1">
+										<strong>Access:</strong> All Stores
+									</p>
+								)}
+							</Col>
+						</Row>
+					</Card.Body>
+				</Card>
 
-			<Card>
-				<Card.Body>
-					<Card.Title>Role-Based Features</Card.Title>
-					{(user.role === "partner" || user.role === "store-manager") && (
-						<div className="mb-3">
-							<Button
-								variant="primary"
-								onClick={() => setCurrentView("stores")}
-								className="me-2"
-							>
-								Manage Stores
-							</Button>
-						</div>
-					)}
-					<div className="mb-3">
-						<Button
-							variant="primary"
-							onClick={() => setCurrentView("inventory")}
-							className="me-2"
-						>
-							Manage Inventory
-						</Button>
-					</div>
-					{user.role === "partner" && (
-						<div className="mb-3">
-							<Button
-								variant="primary"
-								onClick={() => setCurrentView("products")}
-								className="me-2"
-							>
-								Manage Products
-							</Button>
-						</div>
-					)}
-					{user.role === "partner" && (
-						<div>
-							<h5 className="text-success">Partner Access</h5>
-							<ul>
-								<li>View and manage all stores</li>
-								<li>Approve transfer requests between stores</li>
-								<li>Add new products to the system</li>
-								<li>Manage floor display configurations</li>
-								<li>Create and manage user accounts</li>
-								<li>View system-wide reports and analytics</li>
-							</ul>
-						</div>
-					)}
-					{user.role === "store-manager" && (
-						<div>
-							<h5 className="text-primary">Store Manager Access</h5>
-							<ul>
-								<li>Manage inventory at your assigned store</li>
-								<li>Move inventory between floor and back room</li>
-								<li>Create transfer requests to other stores</li>
-								<li>Approve employee order requests</li>
-								<li>View and resolve capacity alerts</li>
-								<li>Add existing products to inventory</li>
-							</ul>
-						</div>
-					)}
-					{user.role === "employee" && (
-						<div>
-							<h5 className="text-secondary">Employee Access</h5>
-							<ul>
-								<li>View inventory at your assigned store</li>
-								<li>Create order requests for new products</li>
-								<li>View capacity alerts</li>
-								<li>Check product availability</li>
-							</ul>
-						</div>
-					)}
-				</Card.Body>
-			</Card>
-		</Container>
+				<Card>
+					<Card.Body>
+						<Card.Title>Your Capabilities</Card.Title>
+						{user.role === "partner" && (
+							<div>
+								<h5 className="text-success">Partner Access</h5>
+								<ul>
+									<li>View and manage all stores</li>
+									<li>Approve transfer requests between stores</li>
+									<li>Add new products to the system</li>
+									<li>Manage floor display configurations</li>
+									<li>Create and manage user accounts</li>
+									<li>View system-wide reports and analytics</li>
+								</ul>
+							</div>
+						)}
+						{user.role === "store-manager" && (
+							<div>
+								<h5 className="text-primary">Store Manager Access</h5>
+								<ul>
+									<li>Manage inventory at your assigned store</li>
+									<li>Move inventory between floor and back room</li>
+									<li>Create transfer requests to other stores</li>
+									<li>Approve employee order requests</li>
+									<li>View and resolve capacity alerts</li>
+									<li>Add existing products to inventory</li>
+								</ul>
+							</div>
+						)}
+						{user.role === "employee" && (
+							<div>
+								<h5 className="text-secondary">Employee Access</h5>
+								<ul>
+									<li>View inventory at your assigned store</li>
+									<li>Create order requests for new products</li>
+									<li>View capacity alerts</li>
+									<li>Check product availability</li>
+								</ul>
+							</div>
+						)}
+					</Card.Body>
+				</Card>
+			</Container>
+		</>
 	);
 }
 

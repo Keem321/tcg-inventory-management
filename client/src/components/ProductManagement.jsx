@@ -18,7 +18,7 @@ import { productAPI } from "../api/products";
  * Product Management Component (Partner Only)
  * Displays all products with expandable details showing inventory across stores
  */
-function ProductManagement({ onBack }) {
+function ProductManagement({ user }) {
 	const [products, setProducts] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
@@ -163,11 +163,6 @@ function ProductManagement({ onBack }) {
 					<p className="text-muted">
 						Note: add dataTable like ordering functionality?
 					</p>
-				</Col>
-				<Col xs="auto">
-					<Button variant="outline-secondary" onClick={onBack}>
-						← Back to Dashboard
-					</Button>
 				</Col>
 			</Row>
 

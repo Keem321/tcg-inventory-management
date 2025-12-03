@@ -18,7 +18,7 @@ import {
 import { storeAPI } from "../api/stores";
 import StoreForm from "./StoreForm";
 
-const StoreManagement = ({ user, onUnauthorized, onBack }) => {
+const StoreManagement = ({ user, onUnauthorized }) => {
 	const [stores, setStores] = useState([]);
 	const [activeTab, setActiveTab] = useState("");
 	const [loading, setLoading] = useState(true);
@@ -183,12 +183,6 @@ const StoreManagement = ({ user, onUnauthorized, onBack }) => {
 
 	return (
 		<Container className="py-4">
-			{onBack && (
-				<Button variant="link" onClick={onBack} className="mb-3 p-0">
-					← Back to Dashboard
-				</Button>
-			)}
-
 			<div className="d-flex justify-content-between align-items-center mb-4">
 				<h2>Store Management</h2>
 				{user.role === "partner" && !showForm && (
@@ -197,6 +191,10 @@ const StoreManagement = ({ user, onUnauthorized, onBack }) => {
 					</Button>
 				)}
 			</div>
+
+			<p className="text-muted">
+				"todo: change minimum requirements for products and brands here."
+			</p>
 
 			{error && (
 				<Alert variant="danger" dismissible onClose={() => setError("")}>
