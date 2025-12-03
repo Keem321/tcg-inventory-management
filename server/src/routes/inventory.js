@@ -7,19 +7,19 @@ const express = require("express");
 const { Inventory } = require("../models/Inventory");
 const { Store } = require("../models/Store");
 const { Product } = require("../models/Product");
-const {
-	requireRole,
-	requireStoreAccess,
-} = require("../middleware/auth");
+const { requireRole, requireStoreAccess } = require("../middleware/auth");
 const mongoose = require("mongoose");
 const { USER_ROLES, LOCATIONS } = require("../constants/enums");
 
 const router = express.Router();
 
+// Routes that don't need store access control (must be defined BEFORE applying middleware)
+
 /**
  * POST /api/inventory/check-duplicate
  * Check if inventory already exists for a product at a store
  * Body: { storeId, productId, location }
+ * Note: This validates storeId internally but doesn't enforce store access restrictions
  */
 router.post("/check-duplicate", async (req, res) => {
 	try {
@@ -95,38 +95,44 @@ router.post("/check-duplicate", async (req, res) => {
  * Get all inventory across all stores (partners only)
  * Query params:
  *   - location: filter by location (floor, back)
+ * Note: Partners-only route, no store access restriction needed
  */
-router.get(
-	"/",
-	requireRole([USER_ROLES.PARTNER]),
-	async (req, res) => {
-		try {
-			const { location } = req.query;
+router.get("/", requireRole([USER_ROLES.PARTNER]), async (req, res) => {
+	try {
+		const { location } = req.query;
 
-			// Build query
-			const query = { isActive: true };
-			if (location && [LOCATIONS.FLOOR, LOCATIONS.BACK].includes(location)) {
-				query.location = location;
-			}
-
-			const inventory = await Inventory.find(query)
-				.populate("storeId", "name location fullAddress")
-				.populate("productId", "name sku productType brand")
-				.sort({ storeId: 1, location: 1, productId: 1 });
-
-			res.json({
-				success: true,
-				inventory,
-			});
-		} catch (error) {
-			console.error("Get all inventory error:", error);
-			res.status(500).json({
-				success: false,
-				message: "Error fetching inventory",
-			});
+		// Build query
+		const query = { isActive: true };
+		if (location && [LOCATIONS.FLOOR, LOCATIONS.BACK].includes(location)) {
+			query.location = location;
 		}
+
+		const inventory = await Inventory.find(query)
+			.populate("storeId", "name location fullAddress")
+			.populate("productId", "name sku productType brand")
+			.sort({ storeId: 1, location: 1, productId: 1 });
+
+		res.json({
+			success: true,
+			inventory,
+		});
+	} catch (error) {
+		console.error("Get all inventory error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Error fetching inventory",
+		});
 	}
-);
+});
+
+/**
+ *
+ * Apply store access control to all remaining routes
+ * This ensures non-partners can only access their assigned store
+ *
+ *
+ */
+router.use(requireStoreAccess);
 
 /**
  * GET /api/inventory/store/:id
@@ -139,54 +145,45 @@ router.get(
  *   - Store managers can only access their assigned store
  *   - Employees can only access their assigned store
  */
-router.get(
-	"/store/:id",
-	requireRole([
-		USER_ROLES.PARTNER,
-		USER_ROLES.STORE_MANAGER,
-		USER_ROLES.EMPLOYEE,
-	]),
-	requireStoreAccess,
-	async (req, res) => {
-		try {
-			const { location } = req.query;
+router.get("/store/:id", async (req, res) => {
+	try {
+		const { location } = req.query;
 
-			// Validate ObjectId format
-			if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-				return res.status(400).json({
-					success: false,
-					message: "Invalid store ID format",
-				});
-			}
-
-			// Build query
-			const query = {
-				storeId: req.params.id,
-				isActive: true,
-			};
-
-			if (location && [LOCATIONS.FLOOR, LOCATIONS.BACK].includes(location)) {
-				query.location = location;
-			}
-
-			const inventory = await Inventory.find(query)
-				.populate("storeId", "name location fullAddress")
-				.populate("productId", "name sku productType brand")
-				.sort({ location: 1, productId: 1 });
-
-			res.json({
-				success: true,
-				inventory,
-			});
-		} catch (error) {
-			console.error("Get store inventory error:", error);
-			res.status(500).json({
+		// Validate ObjectId format
+		if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+			return res.status(400).json({
 				success: false,
-				message: "Error fetching inventory",
+				message: "Invalid store ID format",
 			});
 		}
+
+		// Build query
+		const query = {
+			storeId: req.params.id,
+			isActive: true,
+		};
+
+		if (location && [LOCATIONS.FLOOR, LOCATIONS.BACK].includes(location)) {
+			query.location = location;
+		}
+
+		const inventory = await Inventory.find(query)
+			.populate("storeId", "name location fullAddress")
+			.populate("productId", "name sku productType brand")
+			.sort({ location: 1, productId: 1 });
+
+		res.json({
+			success: true,
+			inventory,
+		});
+	} catch (error) {
+		console.error("Get store inventory error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Error fetching inventory",
+		});
 	}
-);
+});
 
 /**
  * POST /api/inventory
@@ -200,7 +197,6 @@ router.get(
 router.post(
 	"/",
 	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
-	requireStoreAccess,
 	async (req, res) => {
 		try {
 			const { storeId, productId, quantity, location, minStockLevel, notes } =
@@ -358,7 +354,6 @@ router.post(
 router.put(
 	"/:id",
 	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
-	requireStoreAccess,
 	async (req, res) => {
 		try {
 			const { quantity, location, minStockLevel, notes } = req.body;
@@ -447,7 +442,6 @@ router.put(
 router.delete(
 	"/:id",
 	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
-	requireStoreAccess,
 	async (req, res) => {
 		try {
 			// Validate ObjectId format

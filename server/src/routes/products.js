@@ -12,6 +12,9 @@ const { USER_ROLES, LOCATIONS } = require("../constants/enums");
 
 const router = express.Router();
 
+// All product routes are partner-only
+router.use(requireRole([USER_ROLES.PARTNER]));
+
 /**
  * GET /api/products
  * Get all products with optional filtering
@@ -21,7 +24,7 @@ const router = express.Router();
  *   - isActive: filter by active status
  *   - search: text search in name/description
  */
-router.get("/", requireRole([USER_ROLES.PARTNER]), async (req, res) => {
+router.get("/", async (req, res) => {
 	try {
 		const { productType, brand, isActive, search } = req.query;
 
@@ -71,7 +74,7 @@ router.get("/", requireRole([USER_ROLES.PARTNER]), async (req, res) => {
  * GET /api/products/:id
  * Get product by ID with inventory details across all stores
  */
-router.get("/:id", requireRole([USER_ROLES.PARTNER]), async (req, res) => {
+router.get("/:id", async (req, res) => {
 	try {
 		// Validate ObjectId format
 		if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -156,7 +159,7 @@ router.get("/:id", requireRole([USER_ROLES.PARTNER]), async (req, res) => {
  * POST /api/products
  * Create new product
  */
-router.post("/", requireRole([USER_ROLES.PARTNER]), async (req, res) => {
+router.post("/", async (req, res) => {
 	try {
 		const {
 			sku,
@@ -225,7 +228,7 @@ router.post("/", requireRole([USER_ROLES.PARTNER]), async (req, res) => {
  * PUT /api/products/:id
  * Update existing product
  */
-router.put("/:id", requireRole([USER_ROLES.PARTNER]), async (req, res) => {
+router.put("/:id", async (req, res) => {
 	try {
 		// Validate ObjectId format
 		if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -282,7 +285,7 @@ router.put("/:id", requireRole([USER_ROLES.PARTNER]), async (req, res) => {
  * DELETE /api/products/:id
  * Delete product (only if no inventory exists)
  */
-router.delete("/:id", requireRole([USER_ROLES.PARTNER]), async (req, res) => {
+router.delete("/:id", async (req, res) => {
 	try {
 		// Validate ObjectId format
 		if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
