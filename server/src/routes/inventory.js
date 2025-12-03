@@ -204,6 +204,7 @@ router.post(
 	"/",
 	requireAuth,
 	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
+	requireStoreAccess,
 	async (req, res) => {
 		try {
 			const { storeId, productId, quantity, location, minStockLevel, notes } =
@@ -226,21 +227,6 @@ router.post(
 					success: false,
 					message: "Invalid ID format",
 				});
-			}
-
-			// Check store access for non-partners
-			if (req.user.role !== USER_ROLES.PARTNER) {
-				const assignedStoreId =
-					typeof req.user.assignedStoreId === "object"
-						? req.user.assignedStoreId.toString()
-						: req.user.assignedStoreId;
-
-				if (assignedStoreId !== storeId) {
-					return res.status(403).json({
-						success: false,
-						message: "You can only add inventory to your assigned store",
-					});
-				}
 			}
 
 			// Verify store exists
@@ -377,6 +363,7 @@ router.put(
 	"/:id",
 	requireAuth,
 	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
+	requireStoreAccess,
 	async (req, res) => {
 		try {
 			const { quantity, location, minStockLevel, notes } = req.body;
@@ -398,26 +385,6 @@ router.put(
 					success: false,
 					message: "Inventory not found",
 				});
-			}
-
-			// Check store access for non-partners
-			if (req.user.role !== USER_ROLES.PARTNER) {
-				const assignedStoreId =
-					typeof req.user.assignedStoreId === "object"
-						? req.user.assignedStoreId.toString()
-						: req.user.assignedStoreId;
-
-				const inventoryStoreId =
-					typeof inventory.storeId === "object"
-						? inventory.storeId.toString()
-						: inventory.storeId;
-
-				if (assignedStoreId !== inventoryStoreId) {
-					return res.status(403).json({
-						success: false,
-						message: "You can only update inventory at your assigned store",
-					});
-				}
 			}
 
 			// If quantity is changing, check capacity
@@ -486,6 +453,7 @@ router.delete(
 	"/:id",
 	requireAuth,
 	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
+	requireStoreAccess,
 	async (req, res) => {
 		try {
 			// Validate ObjectId format
@@ -503,26 +471,6 @@ router.delete(
 					success: false,
 					message: "Inventory not found",
 				});
-			}
-
-			// Check store access for non-partners
-			if (req.user.role !== USER_ROLES.PARTNER) {
-				const assignedStoreId =
-					typeof req.user.assignedStoreId === "object"
-						? req.user.assignedStoreId.toString()
-						: req.user.assignedStoreId;
-
-				const inventoryStoreId =
-					typeof inventory.storeId === "object"
-						? inventory.storeId.toString()
-						: inventory.storeId;
-
-				if (assignedStoreId !== inventoryStoreId) {
-					return res.status(403).json({
-						success: false,
-						message: "You can only delete inventory at your assigned store",
-					});
-				}
 			}
 
 			// Soft delete

@@ -7,6 +7,15 @@ const { USER_ROLES } = require("../constants/enums");
 const { User } = require("../models/User");
 
 /**
+ * Helper: Normalize ObjectId to string for comparison
+ * @param {ObjectId|string} id - The ID to normalize
+ * @returns {string} - String representation of the ID
+ */
+function normalizeId(id) {
+	return typeof id === "object" && id !== null ? id.toString() : String(id);
+}
+
+/**
  * Require authentication
  * Ensures user is logged in and attaches user to request
  */
@@ -19,14 +28,29 @@ async function requireAuth(req, res, next) {
 	}
 
 	try {
-		const user = await User.findById(req.session.userId);
+		// Select all fields except passwordHash for security
+		const user = await User.findById(req.session.userId).select(
+			"-passwordHash"
+		);
+		
 		if (!user) {
+			// User was deleted but session still exists
+			req.session.destroy();
 			return res.status(401).json({
 				success: false,
 				message: "User not found",
 			});
 		}
 
+		if (!user.isActive) {
+			// User account was deactivated
+			return res.status(403).json({
+				success: false,
+				message: "Account is inactive. Please contact administrator.",
+			});
+		}
+
+		// Attach user to request (passwordHash excluded)
 		req.user = user;
 		next();
 	} catch (error) {
@@ -40,13 +64,15 @@ async function requireAuth(req, res, next) {
 /**
  * Require specific role(s)
  * @param {string[]} roles - Required role(s)
+ * NOTE: This middleware requires requireAuth to be called first
  */
 function requireRole(roles) {
 	return (req, res, next) => {
+		// This should never happen if requireAuth is used first
 		if (!req.user) {
-			return res.status(403).json({
+			return res.status(401).json({
 				success: false,
-				message: "Insufficient permissions",
+				message: "Authentication required",
 			});
 		}
 
@@ -64,6 +90,9 @@ function requireRole(roles) {
 /**
  * Require access to a specific store
  * Partners can access any store, managers and employees can only access their assigned store
+ * NOTE: This middleware requires requireAuth to be called first
+ *
+ * This checks the store ID from req.params.id OR req.body.storeId
  */
 function requireStoreAccess(req, res, next) {
 	if (!req.user) {
@@ -83,7 +112,15 @@ function requireStoreAccess(req, res, next) {
 		req.user.role === USER_ROLES.STORE_MANAGER ||
 		req.user.role === USER_ROLES.EMPLOYEE
 	) {
-		const requestedStoreId = req.params.id;
+		// Check params.id first (for GET/PUT/DELETE), then body.storeId (for POST)
+		const requestedStoreId = req.params.id || req.body.storeId;
+
+		if (!requestedStoreId) {
+			return res.status(400).json({
+				success: false,
+				message: "Store ID is required",
+			});
+		}
 
 		if (!req.user.assignedStoreId) {
 			return res.status(403).json({
@@ -92,12 +129,8 @@ function requireStoreAccess(req, res, next) {
 			});
 		}
 
-		const assignedStoreId =
-			typeof req.user.assignedStoreId === "object"
-				? req.user.assignedStoreId.toString()
-				: req.user.assignedStoreId;
-
-		if (assignedStoreId === requestedStoreId) {
+		// Use helper to normalize IDs for comparison
+		if (normalizeId(req.user.assignedStoreId) === normalizeId(requestedStoreId)) {
 			return next();
 		} else {
 			return res.status(403).json({
