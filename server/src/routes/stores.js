@@ -18,87 +18,76 @@ const router = express.Router();
 
 /**
  * GET /api/stores
- * List all stores (partners and managers only)
+ * List all stores
  */
-router.get(
-	"/",
-	requireAuth,
-	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
-	async (req, res) => {
-		try {
-			const stores = await Store.find().sort({ name: 1 });
+router.get("/", requireAuth, async (req, res) => {
+	try {
+		const stores = await Store.find().sort({ name: 1 });
 
-			res.json({
-				success: true,
-				stores: stores.map((store) => ({
-					_id: store._id,
-					name: store.name,
-					location: store.location,
-					fullAddress: store.fullAddress,
-					maxCapacity: store.maxCapacity,
-					currentCapacity: store.currentCapacity,
-					isActive: store.isActive,
-				})),
-			});
-		} catch (error) {
-			console.error("List stores error:", error);
-			res.status(500).json({
-				success: false,
-				message: "Error fetching stores",
-			});
-		}
+		res.json({
+			success: true,
+			stores: stores.map((store) => ({
+				_id: store._id,
+				name: store.name,
+				location: store.location,
+				fullAddress: store.fullAddress,
+				maxCapacity: store.maxCapacity,
+				currentCapacity: store.currentCapacity,
+				isActive: store.isActive,
+			})),
+		});
+	} catch (error) {
+		console.error("List stores error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Error fetching stores",
+		});
 	}
-);
+});
 
 /**
  * GET /api/stores/:id
- * Get store by ID (partners can view any, managers only their assigned store)
+ * Get store by ID
  */
-router.get(
-	"/:id",
-	requireAuth,
-	requireRole([USER_ROLES.PARTNER, USER_ROLES.STORE_MANAGER]),
-	requireStoreAccess,
-	async (req, res) => {
-		try {
-			// Validate ObjectId format
-			if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-				return res.status(400).json({
-					success: false,
-					message: "Invalid store ID format",
-				});
-			}
-
-			const store = await Store.findById(req.params.id);
-
-			if (!store) {
-				return res.status(404).json({
-					success: false,
-					message: "Store not found",
-				});
-			}
-
-			res.json({
-				success: true,
-				store: {
-					_id: store._id,
-					name: store.name,
-					location: store.location,
-					fullAddress: store.fullAddress,
-					maxCapacity: store.maxCapacity,
-					currentCapacity: store.currentCapacity,
-					isActive: store.isActive,
-				},
-			});
-		} catch (error) {
-			console.error("Get store error:", error);
-			res.status(500).json({
+router.get("/:id", requireAuth, requireStoreAccess, async (req, res) => {
+	try {
+		// Validate ObjectId format
+		if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+			return res.status(400).json({
 				success: false,
-				message: "Error fetching store",
+				message: "Invalid store ID format",
 			});
 		}
+
+		const store = await Store.findById(req.params.id);
+
+		if (!store) {
+			return res.status(404).json({
+				success: false,
+				message: "Store not found",
+			});
+		}
+
+		res.json({
+			success: true,
+			store: {
+				_id: store._id,
+				name: store.name,
+				location: store.location,
+				fullAddress: store.fullAddress,
+				maxCapacity: store.maxCapacity,
+				currentCapacity: store.currentCapacity,
+				isActive: store.isActive,
+			},
+		});
+	} catch (error) {
+		console.error("Get store error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Error fetching store",
+		});
 	}
-);
+});
 
 /**
  * POST /api/stores
