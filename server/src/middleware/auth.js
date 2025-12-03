@@ -32,7 +32,7 @@ async function requireAuth(req, res, next) {
 		const user = await User.findById(req.session.userId).select(
 			"-passwordHash"
 		);
-		
+
 		if (!user) {
 			// User was deleted but session still exists
 			req.session.destroy();
@@ -64,7 +64,7 @@ async function requireAuth(req, res, next) {
 /**
  * Require specific role(s)
  * @param {string[]} roles - Required role(s)
- * NOTE: This middleware requires requireAuth to be called first
+ * NOTE: This middleware assumes requireAuth was called first (in index.js)
  */
 function requireRole(roles) {
 	return (req, res, next) => {
@@ -90,7 +90,7 @@ function requireRole(roles) {
 /**
  * Require access to a specific store
  * Partners can access any store, managers and employees can only access their assigned store
- * NOTE: This middleware requires requireAuth to be called first
+ * NOTE: This middleware assumes requireAuth was called first (in index.js)
  *
  * This checks the store ID from req.params.id OR req.body.storeId
  */
@@ -130,7 +130,9 @@ function requireStoreAccess(req, res, next) {
 		}
 
 		// Use helper to normalize IDs for comparison
-		if (normalizeId(req.user.assignedStoreId) === normalizeId(requestedStoreId)) {
+		if (
+			normalizeId(req.user.assignedStoreId) === normalizeId(requestedStoreId)
+		) {
 			return next();
 		} else {
 			return res.status(403).json({

@@ -71,91 +71,86 @@ router.get("/", requireRole([USER_ROLES.PARTNER]), async (req, res) => {
  * GET /api/products/:id
  * Get product by ID with inventory details across all stores
  */
-router.get(
-	"/:id",
-	requireAuth,
-	requireRole([USER_ROLES.PARTNER]),
-	async (req, res) => {
-		try {
-			// Validate ObjectId format
-			if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-				return res.status(400).json({
-					success: false,
-					message: "Invalid product ID format",
-				});
-			}
-
-			const product = await Product.findById(req.params.id).select("-__v");
-
-			if (!product) {
-				return res.status(404).json({
-					success: false,
-					message: "Product not found",
-				});
-			}
-
-			// Get inventory for this product across all stores
-			const inventory = await Inventory.find({
-				productId: req.params.id,
-				isActive: true,
-			})
-				.populate("storeId", "name location")
-				.select("storeId quantity location cardContainer");
-
-			// Calculate total quantity and per-store breakdown
-			const storeInventory = {};
-			let totalQuantity = 0;
-
-			inventory.forEach((item) => {
-				const storeId = item.storeId._id.toString();
-				const storeName = item.storeId.name;
-
-				if (!storeInventory[storeId]) {
-					storeInventory[storeId] = {
-						storeId,
-						storeName,
-						location: item.storeId.location,
-						floor: 0,
-						back: 0,
-						total: 0,
-					};
-				}
-
-				// For cards, count the cards in containers
-				let quantity = item.quantity;
-				if (item.cardContainer?.cards) {
-					quantity = item.cardContainer.cards.reduce(
-						(sum, card) => sum + card.quantity,
-						0
-					);
-				}
-
-				if (item.location === LOCATIONS.FLOOR) {
-					storeInventory[storeId].floor += quantity;
-				} else {
-					storeInventory[storeId].back += quantity;
-				}
-				storeInventory[storeId].total += quantity;
-				totalQuantity += quantity;
-			});
-
-			res.json({
-				success: true,
-				product,
-				inventory: {
-					totalQuantity,
-					stores: Object.values(storeInventory),
-				},
-			});
-		} catch (error) {
-			console.error("Get product error:", error);
-			res.status(500).json({
+router.get("/:id", requireRole([USER_ROLES.PARTNER]), async (req, res) => {
+	try {
+		// Validate ObjectId format
+		if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+			return res.status(400).json({
 				success: false,
-				message: "Error fetching product",
+				message: "Invalid product ID format",
 			});
 		}
+
+		const product = await Product.findById(req.params.id).select("-__v");
+
+		if (!product) {
+			return res.status(404).json({
+				success: false,
+				message: "Product not found",
+			});
+		}
+
+		// Get inventory for this product across all stores
+		const inventory = await Inventory.find({
+			productId: req.params.id,
+			isActive: true,
+		})
+			.populate("storeId", "name location")
+			.select("storeId quantity location cardContainer");
+
+		// Calculate total quantity and per-store breakdown
+		const storeInventory = {};
+		let totalQuantity = 0;
+
+		inventory.forEach((item) => {
+			const storeId = item.storeId._id.toString();
+			const storeName = item.storeId.name;
+
+			if (!storeInventory[storeId]) {
+				storeInventory[storeId] = {
+					storeId,
+					storeName,
+					location: item.storeId.location,
+					floor: 0,
+					back: 0,
+					total: 0,
+				};
+			}
+
+			// For cards, count the cards in containers
+			let quantity = item.quantity;
+			if (item.cardContainer?.cards) {
+				quantity = item.cardContainer.cards.reduce(
+					(sum, card) => sum + card.quantity,
+					0
+				);
+			}
+
+			if (item.location === LOCATIONS.FLOOR) {
+				storeInventory[storeId].floor += quantity;
+			} else {
+				storeInventory[storeId].back += quantity;
+			}
+			storeInventory[storeId].total += quantity;
+			totalQuantity += quantity;
+		});
+
+		res.json({
+			success: true,
+			product,
+			inventory: {
+				totalQuantity,
+				stores: Object.values(storeInventory),
+			},
+		});
+	} catch (error) {
+		console.error("Get product error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Error fetching product",
+		});
 	}
-);
+});
 
 /**
  * POST /api/products
