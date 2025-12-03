@@ -48,4 +48,52 @@ export const inventoryAPI = {
 		});
 		return response.data;
 	},
+
+	/**
+	 * Create new inventory item
+	 * @param {Object} inventoryData - Inventory data
+	 * @returns {Promise<Object>} Created inventory
+	 */
+	createInventory: async (inventoryData) => {
+		const response = await axios.post(
+			`${API_URL}/api/inventory`,
+			inventoryData,
+			{
+				withCredentials: true,
+			}
+		);
+		return response.data;
+	},
+
+	/**
+	 * Update inventory item
+	 * @param {string} inventoryId - Inventory ID
+	 * @param {Object} updates - Fields to update
+	 * @returns {Promise<Object>} Updated inventory
+	 */
+	updateInventory: async (inventoryId, updates) => {
+		const response = await axios.put(
+			`${API_URL}/api/inventory/${inventoryId}`,
+			updates,
+			{
+				withCredentials: true,
+			}
+		);
+		return response.data;
+	},
+
+	/**
+	 * Delete inventory item
+	 * @param {string} inventoryId - Inventory ID
+	 * @returns {Promise<Object>} Deletion confirmation
+	 */
+	deleteInventory: async (inventoryId) => {
+		const response = await axios.delete(
+			`${API_URL}/api/inventory/${inventoryId}`,
+			{
+				withCredentials: true,
+			}
+		);
+		return response.data;
+	},
 };

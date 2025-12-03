@@ -19,6 +19,10 @@ import {
 } from "react-bootstrap";
 import { inventoryAPI } from "../api/inventory";
 import { storeAPI } from "../api/stores";
+import { productAPI } from "../api/products";
+import CreateInventoryModal from "./modals/CreateInventoryModal";
+import UpdateInventoryModal from "./modals/UpdateInventoryModal";
+import DeleteInventoryModal from "./modals/DeleteInventoryModal";
 
 /**
  * Inventory Management Component
@@ -29,11 +33,43 @@ function InventoryManagement({ user, onBack }) {
 	const [stores, setStores] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [success, setSuccess] = useState(null);
+
+	// Store capacity
+	const [storeCapacity, setStoreCapacity] = useState({
+		current: 0,
+		max: 0,
+	});
 
 	// Filters
 	const [selectedStore, setSelectedStore] = useState("");
 	const [locationFilter, setLocationFilter] = useState("all"); // all, floor, back
 	const [searchTerm, setSearchTerm] = useState("");
+
+	// CRUD Modals
+	const [showCreateModal, setShowCreateModal] = useState(false);
+	const [showUpdateModal, setShowUpdateModal] = useState(false);
+	const [showDeleteModal, setShowDeleteModal] = useState(false);
+	const [selectedItem, setSelectedItem] = useState(null);
+
+	// Create form
+	const [products, setProducts] = useState([]);
+	const [productSearch, setProductSearch] = useState("");
+	const [selectedProduct, setSelectedProduct] = useState(null);
+	const [newInventory, setNewInventory] = useState({
+		quantity: 0,
+		location: "floor",
+		minStockLevel: 0,
+		notes: "",
+	});
+
+	// Update form
+	const [updateForm, setUpdateForm] = useState({
+		quantity: 0,
+		location: "floor",
+		minStockLevel: 0,
+		notes: "",
+	});
 
 	// Determine user's accessible stores
 	const isPartner = user?.role === "partner";
@@ -49,18 +85,21 @@ function InventoryManagement({ user, onBack }) {
 			}
 
 			let response;
+			let currentStoreId = null;
 
 			if (isPartner && selectedStore === "all") {
 				// Partner viewing all stores
 				response = await inventoryAPI.getAllInventory(options);
 			} else if (isPartner && selectedStore) {
 				// Partner viewing specific store
+				currentStoreId = selectedStore;
 				response = await inventoryAPI.getInventoryByStore(
 					selectedStore,
 					options
 				);
 			} else if (hasStoreAssignment) {
 				// Employee/Manager viewing their assigned store
+				currentStoreId = user.assignedStoreId;
 				response = await inventoryAPI.getInventoryByStore(
 					user.assignedStoreId,
 					options
@@ -68,6 +107,19 @@ function InventoryManagement({ user, onBack }) {
 			}
 
 			setInventory(response?.inventory || []);
+
+			// Load store capacity if viewing a specific store
+			if (currentStoreId) {
+				const storeResponse = await storeAPI.getStore(currentStoreId);
+				if (storeResponse?.store) {
+					setStoreCapacity({
+						current: storeResponse.store.currentCapacity || 0,
+						max: storeResponse.store.maxCapacity || 0,
+					});
+				}
+			} else {
+				setStoreCapacity({ current: 0, max: 0 });
+			}
 		} catch (err) {
 			setError(err.message);
 		}
@@ -95,31 +147,24 @@ function InventoryManagement({ user, onBack }) {
 			} else if (isPartner && response.stores.length > 0) {
 				// Partner: select first store or show all
 				setSelectedStore("all");
-			} // Load initial inventory
-			await loadInventory();
+			}
 		} catch (err) {
 			setError(err.message);
 		} finally {
 			setLoading(false);
 		}
-	}, [isPartner, hasStoreAssignment, user?.assignedStoreId, loadInventory]);
+	}, [isPartner, hasStoreAssignment, user?.assignedStoreId]);
 
 	useEffect(() => {
 		loadStoresAndInventory();
 	}, [loadStoresAndInventory]);
 
-	// Reload inventory when filters change
+	// Reload inventory when filters change or when selectedStore is first set
 	useEffect(() => {
-		if (!loading && (selectedStore || hasStoreAssignment)) {
+		if (!loading && selectedStore) {
 			loadInventory();
 		}
-	}, [
-		selectedStore,
-		locationFilter,
-		loading,
-		hasStoreAssignment,
-		loadInventory,
-	]);
+	}, [selectedStore, locationFilter, loading, loadInventory]);
 
 	// Filter inventory by search term
 	const filteredInventory = inventory.filter((item) => {
@@ -146,6 +191,136 @@ function InventoryManagement({ user, onBack }) {
 		return store?.name || "Unknown Store";
 	};
 
+	// CRUD Handlers
+	const handleOpenCreateModal = async () => {
+		try {
+			const response = await productAPI.getProducts();
+			setProducts(response.products || []);
+			setShowCreateModal(true);
+		} catch (err) {
+			setError("Failed to load products: " + err.message);
+		}
+	};
+
+	const handleCreateInventory = async () => {
+		try {
+			setError(null);
+			if (!selectedProduct) {
+				setError("Please select a product");
+				return;
+			}
+
+			const targetStoreId = isPartner ? selectedStore : user.assignedStoreId;
+
+			if (!targetStoreId || targetStoreId === "all") {
+				setError("Please select a specific store");
+				return;
+			}
+
+			// Check capacity
+			const requiredSpace = selectedProduct.unitSize * newInventory.quantity;
+			const availableSpace = storeCapacity.max - storeCapacity.current;
+
+			if (requiredSpace > availableSpace) {
+				setError(
+					`Not enough capacity. Required: ${requiredSpace}, Available: ${availableSpace}`
+				);
+				return;
+			}
+
+			await inventoryAPI.createInventory({
+				storeId: targetStoreId,
+				productId: selectedProduct._id,
+				quantity: parseInt(newInventory.quantity),
+				location: newInventory.location,
+				minStockLevel: parseInt(newInventory.minStockLevel),
+				notes: newInventory.notes || undefined,
+			});
+
+			setSuccess("Inventory created successfully");
+			setShowCreateModal(false);
+			setSelectedProduct(null);
+			setNewInventory({
+				quantity: 0,
+				location: "floor",
+				minStockLevel: 0,
+				notes: "",
+			});
+			setProductSearch("");
+			await loadInventory();
+		} catch (err) {
+			setError("Failed to create inventory: " + err.message);
+		}
+	};
+
+	const handleOpenUpdateModal = (item) => {
+		setSelectedItem(item);
+		setUpdateForm({
+			quantity: item.quantity || 0,
+			location: item.location || "floor",
+			minStockLevel: item.minStockLevel || 0,
+			notes: item.notes || "",
+		});
+		setShowUpdateModal(true);
+	};
+
+	const handleUpdateInventory = async () => {
+		try {
+			setError(null);
+
+			if (!selectedItem) return;
+
+			// Calculate capacity change
+			const oldSpace = selectedItem.productId?.unitSize * selectedItem.quantity;
+			const newSpace = selectedItem.productId?.unitSize * updateForm.quantity;
+			const spaceChange = newSpace - oldSpace;
+			const availableSpace = storeCapacity.max - storeCapacity.current;
+
+			if (spaceChange > availableSpace) {
+				setError(
+					`Not enough capacity. Required additional: ${spaceChange}, Available: ${availableSpace}`
+				);
+				return;
+			}
+
+			await inventoryAPI.updateInventory(selectedItem._id, {
+				quantity: parseInt(updateForm.quantity),
+				location: updateForm.location,
+				minStockLevel: parseInt(updateForm.minStockLevel),
+				notes: updateForm.notes || undefined,
+			});
+
+			setSuccess("Inventory updated successfully");
+			setShowUpdateModal(false);
+			setSelectedItem(null);
+			await loadInventory();
+		} catch (err) {
+			setError("Failed to update inventory: " + err.message);
+		}
+	};
+
+	const handleOpenDeleteModal = (item) => {
+		setSelectedItem(item);
+		setShowDeleteModal(true);
+	};
+
+	const handleDeleteInventory = async () => {
+		try {
+			setError(null);
+
+			if (!selectedItem) return;
+
+			await inventoryAPI.deleteInventory(selectedItem._id);
+
+			setSuccess("Inventory removed successfully");
+			setShowDeleteModal(false);
+			setSelectedItem(null);
+			await loadInventory();
+		} catch (err) {
+			setError("Failed to delete inventory: " + err.message);
+		}
+	};
+
 	if (loading) {
 		return (
 			<Container className="mt-4 text-center">
@@ -164,21 +339,86 @@ function InventoryManagement({ user, onBack }) {
 					← Back to Dashboard
 				</Button>
 			)}
-			<Row className="mb-4">
-				<Col>
-					<h2>Inventory Management</h2>
-					<p className="text-muted">
-						{isPartner
-							? "View and manage inventory across all stores"
-							: `Managing inventory for ${getStoreName(user.assignedStoreId)}`}
-					</p>
-				</Col>
-			</Row>
+
+			<div className="mb-4">
+				<h2>Inventory Management</h2>
+				<p className="text-muted">
+					{isPartner
+						? "View and manage inventory across all stores"
+						: `Managing inventory for ${getStoreName(user.assignedStoreId)}`}
+				</p>
+			</div>
 
 			{error && (
 				<Alert variant="danger" dismissible onClose={() => setError(null)}>
 					{error}
 				</Alert>
+			)}
+
+			{success && (
+				<Alert variant="success" dismissible onClose={() => setSuccess(null)}>
+					{success}
+				</Alert>
+			)}
+
+			{/* Store Capacity Display */}
+			{storeCapacity.max > 0 && (
+				<Card className="mb-4">
+					<Card.Body>
+						<div className="d-flex justify-content-between align-items-center mb-3">
+							<h5 className="mb-0">Store Capacity</h5>
+							<Badge
+								bg={
+									storeCapacity.current / storeCapacity.max >= 0.9
+										? "danger"
+										: storeCapacity.current / storeCapacity.max >= 0.75
+										? "warning"
+										: "success"
+								}
+								className="fs-6"
+							>
+								{Math.round((storeCapacity.current / storeCapacity.max) * 100)}%
+							</Badge>
+						</div>
+						<div className="mb-2">
+							<div className="d-flex justify-content-between text-muted small mb-1">
+								<span>
+									{storeCapacity.current} / {storeCapacity.max} units
+								</span>
+								<span>
+									{storeCapacity.max - storeCapacity.current} units available
+								</span>
+							</div>
+							<div className="progress" style={{ height: "20px" }}>
+								<div
+									className={`progress-bar ${
+										storeCapacity.current / storeCapacity.max >= 0.9
+											? "bg-danger"
+											: storeCapacity.current / storeCapacity.max >= 0.75
+											? "bg-warning"
+											: "bg-success"
+									}`}
+									role="progressbar"
+									style={{
+										width: `${
+											(storeCapacity.current / storeCapacity.max) * 100
+										}%`,
+									}}
+									aria-valuenow={storeCapacity.current}
+									aria-valuemin="0"
+									aria-valuemax={storeCapacity.max}
+								/>
+							</div>
+						</div>
+						{storeCapacity.current / storeCapacity.max >= 0.9 && (
+							<Alert variant="danger" className="mb-0 mt-2">
+								<strong>Warning:</strong> Store is at{" "}
+								{Math.round((storeCapacity.current / storeCapacity.max) * 100)}%
+								capacity!
+							</Alert>
+						)}
+					</Card.Body>
+				</Card>
 			)}
 
 			{/* Filters */}
@@ -261,6 +501,19 @@ function InventoryManagement({ user, onBack }) {
 						<h5 className="mb-0">
 							Inventory Items ({filteredInventory.length})
 						</h5>
+						{(selectedStore && selectedStore !== "all") ||
+						hasStoreAssignment ? (
+							<Button
+								variant="primary"
+								onClick={handleOpenCreateModal}
+								disabled={
+									storeCapacity.max > 0 &&
+									storeCapacity.current >= storeCapacity.max
+								}
+							>
+								+ Add Inventory
+							</Button>
+						) : null}
 					</div>
 
 					{filteredInventory.length === 0 ? (
@@ -370,10 +623,21 @@ function InventoryManagement({ user, onBack }) {
 													)}
 												</td>
 												<td>
-													<Button variant="link" size="sm">
-														View
-													</Button>
-													{/* More actions will be added later */}
+													<ButtonGroup size="sm">
+														<Button
+															variant="outline-primary"
+															onClick={() => handleOpenUpdateModal(item)}
+															disabled={isContainer}
+														>
+															Edit
+														</Button>
+														<Button
+															variant="outline-danger"
+															onClick={() => handleOpenDeleteModal(item)}
+														>
+															Delete
+														</Button>
+													</ButtonGroup>
 												</td>
 											</tr>
 										);
@@ -384,6 +648,42 @@ function InventoryManagement({ user, onBack }) {
 					)}
 				</Card.Body>
 			</Card>
+
+			{/* Create Inventory Modal */}
+			<CreateInventoryModal
+				show={showCreateModal}
+				onHide={() => setShowCreateModal(false)}
+				products={products}
+				productSearch={productSearch}
+				setProductSearch={setProductSearch}
+				selectedProduct={selectedProduct}
+				setSelectedProduct={setSelectedProduct}
+				newInventory={newInventory}
+				setNewInventory={setNewInventory}
+				storeCapacity={storeCapacity}
+				onSubmit={handleCreateInventory}
+				error={error}
+			/>
+
+			{/* Update Inventory Modal */}
+			<UpdateInventoryModal
+				show={showUpdateModal}
+				onHide={() => setShowUpdateModal(false)}
+				selectedItem={selectedItem}
+				updateForm={updateForm}
+				setUpdateForm={setUpdateForm}
+				onSubmit={handleUpdateInventory}
+				error={error}
+			/>
+
+			{/* Delete Confirmation Modal */}
+			<DeleteInventoryModal
+				show={showDeleteModal}
+				onHide={() => setShowDeleteModal(false)}
+				selectedItem={selectedItem}
+				onConfirm={handleDeleteInventory}
+				error={error}
+			/>
 		</Container>
 	);
 }
