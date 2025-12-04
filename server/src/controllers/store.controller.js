@@ -3,7 +3,7 @@
  * Handles HTTP request/response for store operations
  */
 
-const storeService = require("../services/store-service");
+const storeService = require("../services/store.service");
 
 /**
  * Get all stores

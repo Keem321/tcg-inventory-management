@@ -4,7 +4,7 @@
  */
 
 const mongoose = require("mongoose");
-const storeRepo = require("../repositories/store-repository");
+const storeRepo = require("../repositories/store.repository");
 
 /**
  * Format a store for API response

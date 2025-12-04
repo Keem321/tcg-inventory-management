@@ -4,7 +4,7 @@
  */
 
 const express = require("express");
-const productController = require("../controllers/product-controller");
+const productController = require("../controllers/product.controller");
 const { requireRole } = require("../middleware/auth");
 const { USER_ROLES } = require("../constants/enums");
 

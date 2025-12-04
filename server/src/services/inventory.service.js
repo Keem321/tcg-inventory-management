@@ -4,7 +4,7 @@
  */
 
 const mongoose = require("mongoose");
-const inventoryRepo = require("../repositories/inventory-repository");
+const inventoryRepo = require("../repositories/inventory.repository");
 const { LOCATIONS } = require("../constants/enums");
 
 /**

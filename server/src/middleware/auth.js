@@ -4,7 +4,7 @@
  */
 
 const { USER_ROLES } = require("../constants/enums");
-const { User } = require("../models/User");
+const { User } = require("../models/user.model");
 
 /**
  * Helper: Normalize ObjectId to string for comparison

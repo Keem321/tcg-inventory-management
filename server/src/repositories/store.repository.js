@@ -3,8 +3,8 @@
  * Handles all database operations for stores
  */
 
-const { Store } = require("../models/Store");
-const { User } = require("../models/User");
+const { Store } = require("../models/store.model");
+const { User } = require("../models/user.model");
 
 /**
  * Find all stores

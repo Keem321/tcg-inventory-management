@@ -3,8 +3,8 @@
  * Handles all database operations for products
  */
 
-const { Product } = require("../models/Product");
-const { Inventory } = require("../models/Inventory");
+const { Product } = require("../models/product.model");
+const { Inventory } = require("../models/inventory.model");
 
 /**
  * Find all products with optional filters

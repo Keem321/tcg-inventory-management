@@ -4,7 +4,7 @@
  */
 
 const mongoose = require("mongoose");
-const productRepo = require("../repositories/product-repository");
+const productRepo = require("../repositories/product.repository");
 const { LOCATIONS } = require("../constants/enums");
 
 /**

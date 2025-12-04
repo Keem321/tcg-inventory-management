@@ -4,7 +4,7 @@
  */
 
 const express = require("express");
-const inventoryController = require("../controllers/inventory-controller");
+const inventoryController = require("../controllers/inventory.controller");
 const { requireRole, requireStoreAccess } = require("../middleware/auth");
 const { USER_ROLES } = require("../constants/enums");
 

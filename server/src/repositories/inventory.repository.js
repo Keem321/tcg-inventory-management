@@ -3,9 +3,9 @@
  * Handles all database operations for inventory
  */
 
-const { Inventory } = require("../models/Inventory");
-const { Store } = require("../models/Store");
-const { Product } = require("../models/Product");
+const { Inventory } = require("../models/inventory.model");
+const { Store } = require("../models/store.model");
+const { Product } = require("../models/product.model");
 const { LOCATIONS } = require("../constants/enums");
 
 /**

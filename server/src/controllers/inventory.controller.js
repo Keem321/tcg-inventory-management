@@ -3,7 +3,7 @@
  * Handles HTTP request/response for inventory operations
  */
 
-const inventoryService = require("../services/inventory-service");
+const inventoryService = require("../services/inventory.service");
 
 /**
  * Check for duplicate inventory

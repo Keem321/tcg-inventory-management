@@ -3,7 +3,7 @@
  * Handles HTTP request/response for product operations
  */
 
-const productService = require("../services/product-service");
+const productService = require("../services/product.service");
 
 /**
  * Get all products with optional filtering
