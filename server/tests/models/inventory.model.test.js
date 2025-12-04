@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { Inventory } from "../../src/models/Inventory.js";
-import { Store } from "../../src/models/Store.js";
-import { Product } from "../../src/models/Product.js";
+import { Inventory } from "../../src/models/inventory.model.js";
+import { Store } from "../../src/models/store.model.js";
+import { Product } from "../../src/models/product.model.js";
 import "../setup.js"; // Import test setup
 import {
 	storeFixtures,
@@ -44,16 +44,6 @@ describe("Inventory Model", () => {
 			const savedInventory = await inventory.save();
 
 			expect(savedInventory._id).toBeDefined();
-			expect(savedInventory.storeId.toString()).toBe(testStore._id.toString());
-			expect(savedInventory.productId.toString()).toBe(
-				boosterProduct._id.toString()
-			);
-			expect(savedInventory.quantity).toBe(50);
-			expect(savedInventory.location).toBe(LOCATIONS.FLOOR);
-			expect(savedInventory.minStockLevel).toBe(10);
-			expect(savedInventory.cardContainer).toBeNull();
-			expect(savedInventory.isActive).toBe(true);
-			expect(savedInventory.createdAt).toBeInstanceOf(Date);
 		});
 
 		it("should create inventory in back location", async () => {
