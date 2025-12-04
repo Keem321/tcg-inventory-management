@@ -14,7 +14,7 @@ const { LOCATIONS } = require("../constants/enums");
  * @returns {Promise<Array>} Array of inventory documents
  */
 exports.findAll = async (filters = {}) => {
-	return await Inventory.find(filters)
+	return await Inventory.find({ ...filters, isActive: true })
 		.populate("storeId", "name location fullAddress")
 		.populate("productId", "name sku productType brand")
 		.sort({ storeId: 1, location: 1, productId: 1 });
@@ -27,7 +27,7 @@ exports.findAll = async (filters = {}) => {
  * @returns {Promise<Array>} Array of inventory documents
  */
 exports.findByStore = async (storeId, filters = {}) => {
-	return await Inventory.find({ storeId, ...filters })
+	return await Inventory.find({ storeId, ...filters, isActive: true })
 		.populate("storeId", "name location fullAddress")
 		.populate("productId", "name sku productType brand")
 		.sort({ location: 1, productId: 1 });

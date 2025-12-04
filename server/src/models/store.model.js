@@ -29,11 +29,13 @@ const storeSchema = new mongoose.Schema(
 				uppercase: true,
 				minlength: 2,
 				maxlength: 2,
+				match: [/^[A-Z]{2}$/i, "State must be a 2-letter code"],
 			},
 			zipCode: {
 				type: String,
 				required: [true, "Zip code is required"],
 				trim: true,
+				match: [/^\d{5}(-\d{4})?$/, "Zip code must be 5 digits or 5+4 format"],
 			},
 		},
 		maxCapacity: {
