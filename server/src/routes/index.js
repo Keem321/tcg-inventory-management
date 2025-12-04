@@ -8,9 +8,9 @@ const { requireAuth } = require("../middleware/auth");
 
 // Import individual route modules
 const authRoutes = require("./auth");
-const storeRoutes = require("./stores");
-const inventoryRoutes = require("./inventory");
-const productRoutes = require("./products");
+const storeRoutes = require("./store-routes");
+const inventoryRoutes = require("./inventory-routes");
+const productRoutes = require("./product-routes");
 
 const router = express.Router();
 
