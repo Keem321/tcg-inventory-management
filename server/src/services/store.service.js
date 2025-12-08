@@ -62,16 +62,28 @@ exports.getStoreById = async (storeId) => {
 
 /**
  * Create new store
- * @param {Object} storeData - { name, location, fullAddress, maxCapacity }
+ * @param {Object} storeData - { name, location, maxCapacity }
  * @returns {Object} Created store
  * @throws {Error} If validation fails
  */
 exports.createStore = async (storeData) => {
-	const { name, location, fullAddress, maxCapacity } = storeData;
+	const { name, location, maxCapacity } = storeData;
 
 	// Validate required fields
-	if (!name || !location || !fullAddress || !maxCapacity) {
+	if (!name || !location || !maxCapacity) {
 		const error = new Error("Missing required fields");
+		error.statusCode = 400;
+		throw error;
+	}
+
+	// Validate location object
+	if (
+		!location.address ||
+		!location.city ||
+		!location.state ||
+		!location.zipCode
+	) {
+		const error = new Error("Missing required location fields");
 		error.statusCode = 400;
 		throw error;
 	}
@@ -86,7 +98,6 @@ exports.createStore = async (storeData) => {
 	const store = await storeRepo.create({
 		name,
 		location,
-		fullAddress,
 		maxCapacity,
 		currentCapacity: 0,
 	});
@@ -102,7 +113,7 @@ exports.createStore = async (storeData) => {
  * @throws {Error} If validation fails or store not found
  */
 exports.updateStore = async (storeId, updateData) => {
-	const { name, location, fullAddress, maxCapacity } = updateData;
+	const { name, location, maxCapacity } = updateData;
 
 	// Validate ObjectId
 	if (!mongoose.Types.ObjectId.isValid(storeId)) {
@@ -142,7 +153,6 @@ exports.updateStore = async (storeId, updateData) => {
 	const updates = {};
 	if (name) updates.name = name;
 	if (location) updates.location = location;
-	if (fullAddress) updates.fullAddress = fullAddress;
 	if (maxCapacity !== undefined) updates.maxCapacity = maxCapacity;
 
 	const updatedStore = await storeRepo.update(storeId, updates);
