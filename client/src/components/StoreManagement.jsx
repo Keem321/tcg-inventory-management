@@ -20,7 +20,7 @@ import StoreForm from "./StoreForm";
 
 const StoreManagement = ({ user, onUnauthorized }) => {
 	const [stores, setStores] = useState([]);
-	const [activeTab, setActiveTab] = useState("");
+	const [activeTab, setActiveTab] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
 	const [showForm, setShowForm] = useState(false);
@@ -35,7 +35,7 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 		if (user.role === "partner") {
 			return allStores; // Partners see all stores
 		} else if (user.role === "store-manager" && user.assignedStoreId) {
-			return allStores.filter((store) => store._id === user.assignedStoreId);
+			return allStores.filter((store) => store.id === user.assignedStoreId);
 		}
 		return [];
 	};
@@ -52,12 +52,11 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 				// Filter stores based on role
 				const accessibleStores = filterStoresByRole(response.stores);
 
-				// Update active tab if needed
-				if (
-					accessibleStores.length > 0 &&
-					!accessibleStores.find((s) => s._id === activeTab)
-				) {
-					setActiveTab(accessibleStores[0]._id);
+				// Set active tab to first store if not already set or if current tab is not accessible
+				if (accessibleStores.length > 0) {
+					if (!activeTab || !accessibleStores.find((s) => s.id === activeTab)) {
+						setActiveTab(accessibleStores[0].id);
+					}
 				}
 			}
 		} catch (err) {
@@ -103,7 +102,7 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 
 		try {
 			setDeleteLoading(true);
-			const response = await storeAPI.deleteStore(storeToDelete._id);
+			const response = await storeAPI.deleteStore(storeToDelete.id);
 
 			if (response.success) {
 				setShowDeleteModal(false);
@@ -131,13 +130,10 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 				if (response.success) {
 					setShowForm(false);
 					await fetchStores();
-					setActiveTab(response.store._id); // Switch to newly created store
+					setActiveTab(response.store.id); // Switch to newly created store
 				}
 			} else {
-				const response = await storeAPI.updateStore(
-					selectedStore._id,
-					formData
-				);
+				const response = await storeAPI.updateStore(selectedStore.id, formData);
 				if (response.success) {
 					setShowForm(false);
 					await fetchStores();
@@ -225,11 +221,15 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 			) : (
 				<Tabs
 					activeKey={activeTab}
-					onSelect={(k) => setActiveTab(k)}
+					onSelect={(k) => {
+						console.log("Tab clicked:", k);
+						console.log("Current activeTab:", activeTab);
+						setActiveTab(k);
+					}}
 					className="mb-3"
 				>
 					{accessibleStores.map((store) => (
-						<Tab eventKey={store._id} title={store.name} key={store._id}>
+						<Tab eventKey={store.id} title={store.name} key={store.id}>
 							<Card>
 								<Card.Body>
 									<div className="d-flex justify-content-between align-items-start mb-3">
@@ -240,7 +240,7 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 										<div className="d-flex gap-2">
 											{(user.role === "partner" ||
 												(user.role === "store-manager" &&
-													user.assignedStoreId === store._id)) && (
+													user.assignedStoreId === store.id)) && (
 												<Button
 													variant="outline-primary"
 													size="sm"
