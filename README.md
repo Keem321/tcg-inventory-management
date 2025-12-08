@@ -62,25 +62,6 @@ Intelligent alerts and multi-level floor display management ensure optimal produ
 - Unit tests for components and API endpoints
 - Integration tests for workflows
 
-## Project Structure
-
-```
-tcg-inventory-management/
-├── client/                 # React frontend
-│   ├── src/
-│   │   ├── App.jsx        # Main application component
-│   │   ├── setupTests.js  # Test configuration
-│   │   └── assets/        # Static assets
-│   └── vitest.config.js   # Frontend test config
-│
-├── server/                 # Express backend
-│   ├── index.js           # Server entry point
-│   ├── .env               # Environment variables
-│   └── vitest.config.js   # Backend test config
-│
-└── README.md
-```
-
 ## Database Schema
 
 ### Collections
@@ -93,8 +74,6 @@ tcg-inventory-management/
 6. **Capacity Alerts** - Automated monitoring alerts with multiple trigger types
 7. **Order Requests** - Employee request workflow with manager/partner approval
 8. **Floor Display Config** - Multi-level minimum configuration (product/type/brand)
-
-See `MongoDB Schema Design.md` for detailed schema documentation.
 
 ## Business Logic
 
