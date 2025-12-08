@@ -11,25 +11,25 @@ import {
 	Card,
 	Button,
 	Alert,
-	Modal,
 	ProgressBar,
 	Badge,
 } from "react-bootstrap";
 import { storeAPI } from "../api/stores";
-import StoreForm from "./StoreForm";
+import CreateStoreModal from "./modals/CreateStoreModal";
+import UpdateStoreModal from "./modals/UpdateStoreModal";
+import DeleteStoreModal from "./modals/DeleteStoreModal";
 
 const StoreManagement = ({ user, onUnauthorized }) => {
 	const [stores, setStores] = useState([]);
 	const [activeTab, setActiveTab] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
-	const [showForm, setShowForm] = useState(false);
-	const [formMode, setFormMode] = useState("create");
-	const [selectedStore, setSelectedStore] = useState(null);
-	const [formLoading, setFormLoading] = useState(false);
+
+	// Modal states
+	const [showCreateModal, setShowCreateModal] = useState(false);
+	const [showUpdateModal, setShowUpdateModal] = useState(false);
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
-	const [storeToDelete, setStoreToDelete] = useState(null);
-	const [deleteLoading, setDeleteLoading] = useState(false);
+	const [selectedStore, setSelectedStore] = useState(null);
 
 	const filterStoresByRole = (allStores) => {
 		if (user.role === "partner") {
@@ -81,76 +81,44 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 	}, [user, onUnauthorized]);
 
 	const handleAddStore = () => {
-		setFormMode("create");
-		setSelectedStore(null);
-		setShowForm(true);
+		setShowCreateModal(true);
 	};
 
 	const handleEditStore = (store) => {
-		setFormMode("edit");
 		setSelectedStore(store);
-		setShowForm(true);
+		setShowUpdateModal(true);
 	};
 
 	const handleDeleteClick = (store) => {
-		setStoreToDelete(store);
+		setSelectedStore(store);
 		setShowDeleteModal(true);
 	};
 
-	const handleDeleteConfirm = async () => {
-		if (!storeToDelete) return;
-
-		try {
-			setDeleteLoading(true);
-			const response = await storeAPI.deleteStore(storeToDelete.id);
-
-			if (response.success) {
-				setShowDeleteModal(false);
-				setStoreToDelete(null);
-				await fetchStores(); // Refresh list
-			}
-		} catch (err) {
-			console.error("Error deleting store:", err);
-			setError(
-				err.response?.data?.message || err.message || "Failed to delete store"
-			);
+	const handleDeleteStore = async (storeId) => {
+		const response = await storeAPI.deleteStore(storeId);
+		if (response.success) {
 			setShowDeleteModal(false);
-		} finally {
-			setDeleteLoading(false);
+			setSelectedStore(null);
+			await fetchStores();
 		}
 	};
 
-	const handleFormSubmit = async (formData) => {
-		try {
-			setFormLoading(true);
-			setError("");
-
-			if (formMode === "create") {
-				const response = await storeAPI.createStore(formData);
-				if (response.success) {
-					setShowForm(false);
-					await fetchStores();
-					setActiveTab(response.store.id); // Switch to newly created store
-				}
-			} else {
-				const response = await storeAPI.updateStore(selectedStore.id, formData);
-				if (response.success) {
-					setShowForm(false);
-					await fetchStores();
-				}
-			}
-		} catch (err) {
-			console.error("Error saving store:", err);
-			setError(err.response?.data?.message || "Failed to save store");
-		} finally {
-			setFormLoading(false);
+	const handleCreateStore = async (formData) => {
+		const response = await storeAPI.createStore(formData);
+		if (response.success) {
+			setShowCreateModal(false);
+			await fetchStores();
+			setActiveTab(response.store.id);
 		}
 	};
 
-	const handleFormCancel = () => {
-		setShowForm(false);
-		setSelectedStore(null);
-		setError("");
+	const handleUpdateStore = async (formData) => {
+		const response = await storeAPI.updateStore(selectedStore.id, formData);
+		if (response.success) {
+			setShowUpdateModal(false);
+			setSelectedStore(null);
+			await fetchStores();
+		}
 	};
 
 	const calculateCapacityPercentage = (current, max) => {
@@ -181,7 +149,7 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 		<Container className="py-4">
 			<div className="d-flex justify-content-between align-items-center mb-4">
 				<h2>Store Management</h2>
-				{user.role === "partner" && !showForm && (
+				{user.role === "partner" && (
 					<Button variant="primary" onClick={handleAddStore}>
 						Add New Store
 					</Button>
@@ -198,23 +166,20 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 				</Alert>
 			)}
 
-			{/* Form Modal */}
-			<Modal show={showForm} onHide={handleFormCancel} size="lg">
-				<Modal.Header closeButton>
-					<Modal.Title>
-						{formMode === "create" ? "Create New Store" : "Edit Store"}
-					</Modal.Title>
-				</Modal.Header>
-				<Modal.Body>
-					<StoreForm
-						mode={formMode}
-						store={selectedStore}
-						onSubmit={handleFormSubmit}
-						onCancel={handleFormCancel}
-						loading={formLoading}
-					/>
-				</Modal.Body>
-			</Modal>
+			{/* Create Store Modal */}
+			<CreateStoreModal
+				show={showCreateModal}
+				onHide={() => setShowCreateModal(false)}
+				onStoreCreated={handleCreateStore}
+			/>
+
+			{/* Update Store Modal */}
+			<UpdateStoreModal
+				show={showUpdateModal}
+				onHide={() => setShowUpdateModal(false)}
+				store={selectedStore}
+				onStoreUpdated={handleUpdateStore}
+			/>
 
 			{accessibleStores.length === 0 ? (
 				<Alert variant="info">No stores available.</Alert>
@@ -329,32 +294,13 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 				</Tabs>
 			)}
 
-			{/* Delete Confirmation Modal */}
-			<Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-				<Modal.Header closeButton>
-					<Modal.Title>Confirm Deletion</Modal.Title>
-				</Modal.Header>
-				<Modal.Body>
-					Are you sure you want to delete <strong>{storeToDelete?.name}</strong>
-					? This action cannot be undone.
-				</Modal.Body>
-				<Modal.Footer>
-					<Button
-						variant="secondary"
-						onClick={() => setShowDeleteModal(false)}
-						disabled={deleteLoading}
-					>
-						Cancel
-					</Button>
-					<Button
-						variant="danger"
-						onClick={handleDeleteConfirm}
-						disabled={deleteLoading}
-					>
-						{deleteLoading ? "Deleting..." : "Confirm Delete"}
-					</Button>
-				</Modal.Footer>
-			</Modal>
+			{/* Delete Store Modal */}
+			<DeleteStoreModal
+				show={showDeleteModal}
+				onHide={() => setShowDeleteModal(false)}
+				store={selectedStore}
+				onStoreDeleted={handleDeleteStore}
+			/>
 		</Container>
 	);
 };
