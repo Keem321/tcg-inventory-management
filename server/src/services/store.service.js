@@ -7,40 +7,17 @@ const mongoose = require("mongoose");
 const storeRepo = require("../repositories/store.repository");
 
 /**
- * Format a store for API response
- * @param {Object} store - Store document
- * @returns {Object} Formatted store
- */
-const formatStoreResponse = (store) => {
-	if (!store) return null;
-
-	return {
-		id: store._id,
-		name: store.name,
-		location: store.location,
-		fullAddress: store.fullAddress,
-		maxCapacity: store.maxCapacity,
-		currentCapacity: store.currentCapacity || 0,
-		availableCapacity: store.maxCapacity - (store.currentCapacity || 0),
-		assignedUsers: store.assignedUsers || [],
-		createdAt: store.createdAt,
-		updatedAt: store.updatedAt,
-	};
-};
-
-/**
  * Get all stores
- * @returns {Array} Array of formatted stores
+ * @returns {Array} Array of stores
  */
 exports.getAllStores = async () => {
-	const stores = await storeRepo.findAll();
-	return stores.map(formatStoreResponse);
+	return await storeRepo.findAll();
 };
 
 /**
  * Get store by ID
  * @param {String} storeId - Store ID
- * @returns {Object} Formatted store
+ * @returns {Object} Store document
  * @throws {Error} If store not found or invalid ID
  */
 exports.getStoreById = async (storeId) => {
@@ -57,7 +34,7 @@ exports.getStoreById = async (storeId) => {
 		throw error;
 	}
 
-	return formatStoreResponse(store);
+	return store;
 };
 
 /**
@@ -102,7 +79,7 @@ exports.createStore = async (storeData) => {
 		currentCapacity: 0,
 	});
 
-	return formatStoreResponse(store);
+	return store;
 };
 
 /**
@@ -156,7 +133,7 @@ exports.updateStore = async (storeId, updateData) => {
 	if (maxCapacity !== undefined) updates.maxCapacity = maxCapacity;
 
 	const updatedStore = await storeRepo.update(storeId, updates);
-	return formatStoreResponse(updatedStore);
+	return updatedStore;
 };
 
 /**

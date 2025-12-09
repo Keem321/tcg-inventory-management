@@ -34,14 +34,6 @@ router.get(
 );
 
 /**
- *
- * Apply store access control to all remaining routes
- * This ensures non-partners can only access their assigned store
- *
- */
-router.use(requireStoreAccess);
-
-/**
  * GET /api/inventory/store/:id
  * Get inventory for a specific store
  * Query params:
@@ -51,8 +43,19 @@ router.use(requireStoreAccess);
  *   - Partners can access any store
  *   - Store managers can only access their assigned store
  *   - Employees can only access their assigned store
+ *
+ * Note: This route is intentionally placed BEFORE requireStoreAccess middleware
+ * to allow managers to see other store inventory during transfer requests
  */
 router.get("/store/:id", inventoryController.getInventoryByStore);
+
+/**
+ *
+ * Apply store access control to all remaining routes
+ * This ensures non-partners can only access their assigned store for modification operations
+ *
+ */
+router.use(requireStoreAccess);
 
 /**
  * POST /api/inventory

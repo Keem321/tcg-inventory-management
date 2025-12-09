@@ -105,5 +105,3 @@ exports.deleteTransferRequest = async (req, res) => {
 		});
 	}
 };
-
-module.exports = exports;

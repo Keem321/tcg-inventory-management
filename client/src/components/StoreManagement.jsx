@@ -35,7 +35,7 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 		if (user.role === "partner") {
 			return allStores; // Partners see all stores
 		} else if (user.role === "store-manager" && user.assignedStoreId) {
-			return allStores.filter((store) => store.id === user.assignedStoreId);
+			return allStores.filter((store) => store._id === user.assignedStoreId);
 		}
 		return [];
 	};
@@ -54,8 +54,11 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 
 				// Set active tab to first store if not already set or if current tab is not accessible
 				if (accessibleStores.length > 0) {
-					if (!activeTab || !accessibleStores.find((s) => s.id === activeTab)) {
-						setActiveTab(accessibleStores[0].id);
+					if (
+						!activeTab ||
+						!accessibleStores.find((s) => s._id === activeTab)
+					) {
+						setActiveTab(accessibleStores[0]._id);
 					}
 				}
 			}
@@ -108,12 +111,12 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 		if (response.success) {
 			setShowCreateModal(false);
 			await fetchStores();
-			setActiveTab(response.store.id);
+			setActiveTab(response.store._id);
 		}
 	};
 
 	const handleUpdateStore = async (formData) => {
-		const response = await storeAPI.updateStore(selectedStore.id, formData);
+		const response = await storeAPI.updateStore(selectedStore._id, formData);
 		if (response.success) {
 			setShowUpdateModal(false);
 			setSelectedStore(null);
@@ -194,7 +197,7 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 					className="mb-3"
 				>
 					{accessibleStores.map((store) => (
-						<Tab eventKey={store.id} title={store.name} key={store.id}>
+						<Tab eventKey={store._id} title={store.name} key={store._id}>
 							<Card>
 								<Card.Body>
 									<div className="d-flex justify-content-between align-items-start mb-3">
@@ -205,7 +208,7 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 										<div className="d-flex gap-2">
 											{(user.role === "partner" ||
 												(user.role === "store-manager" &&
-													user.assignedStoreId === store.id)) && (
+													user.assignedStoreId === store._id)) && (
 												<Button
 													variant="outline-primary"
 													size="sm"

@@ -151,19 +151,16 @@ const transferRequestSchema = new mongoose.Schema(
 	}
 );
 
-// Indexes for efficient querying
-transferRequestSchema.index({ requestNumber: 1 });
 transferRequestSchema.index({ fromStoreId: 1, status: 1 });
 transferRequestSchema.index({ toStoreId: 1, status: 1 });
 transferRequestSchema.index({ status: 1, createdAt: -1 });
 transferRequestSchema.index({ isActive: 1 });
 
 // Validation: Can't transfer to the same store
-transferRequestSchema.pre("save", function (next) {
+transferRequestSchema.pre("save", function () {
 	if (this.fromStoreId.equals(this.toStoreId)) {
-		next(new Error("Cannot transfer inventory to the same store"));
+		throw new Error("Cannot transfer inventory to the same store");
 	}
-	next();
 });
 
 // Virtual for checking if user can modify this request based on store

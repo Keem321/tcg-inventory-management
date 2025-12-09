@@ -15,7 +15,7 @@ function DeleteStoreModal({ show, onHide, store, onStoreDeleted }) {
 		setError(null);
 
 		try {
-			await onStoreDeleted(store.id);
+			await onStoreDeleted(store._id);
 			handleClose();
 		} catch (err) {
 			setError(err.response?.data?.message || err.message);

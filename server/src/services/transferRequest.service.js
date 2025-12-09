@@ -48,8 +48,8 @@ exports.createTransferRequest = async (requestData, user) => {
 	if (user.role === USER_ROLES.STORE_MANAGER) {
 		// Managers can only create requests involving their store
 		if (
-			user.storeId.toString() !== fromStoreId &&
-			user.storeId.toString() !== toStoreId
+			user.assignedStoreId.toString() !== fromStoreId &&
+			user.assignedStoreId.toString() !== toStoreId
 		) {
 			const error = new Error(
 				"Managers can only create requests involving their own store"
@@ -131,7 +131,7 @@ exports.getAllTransferRequests = async (user, filters = {}) => {
 
 	// Managers can only see requests involving their store
 	if (user.role === USER_ROLES.STORE_MANAGER) {
-		return await transferRequestRepo.findByStore(user.storeId, filters);
+		return await transferRequestRepo.findByStore(user.assignedStoreId, filters);
 	}
 
 	// Employees cannot access transfer requests
@@ -164,7 +164,7 @@ exports.getTransferRequestById = async (id, user) => {
 
 	// Check permissions
 	if (user.role === USER_ROLES.STORE_MANAGER) {
-		const userStoreId = user.storeId.toString();
+		const userStoreId = user.assignedStoreId.toString();
 		const fromStoreId = transferRequest.fromStoreId._id.toString();
 		const toStoreId = transferRequest.toStoreId._id.toString();
 
@@ -196,7 +196,7 @@ exports.updateTransferStatus = async (
 	const transferRequest = await this.getTransferRequestById(id, user);
 
 	// Check if user can transition to new status
-	const userStoreId = user.storeId?.toString();
+	const userStoreId = user.assignedStoreId?.toString();
 	if (!transferRequest.canTransitionTo(newStatus, user, userStoreId)) {
 		const error = new Error(
 			`Cannot transition from ${transferRequest.status} to ${newStatus}`

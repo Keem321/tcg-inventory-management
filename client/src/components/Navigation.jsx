@@ -90,7 +90,7 @@ function Navigation({ user, currentView, onNavigate, onLogout }) {
 								Transfer Requests
 							</Nav.Link>
 						)}
-					</Nav>{" "}
+					</Nav>
 					<Nav>
 						<Navbar.Text className="me-3">
 							{user.fullName} {getRoleBadge(user.role)}

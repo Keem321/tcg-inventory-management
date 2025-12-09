@@ -19,11 +19,12 @@ import {
 } from "react-bootstrap";
 import { transferRequestAPI } from "../api/transferRequests";
 import { storeAPI } from "../api/stores";
-import { inventoryAPI } from "../api/inventory";
+import CreateTransferRequestModal from "./modals/CreateTransferRequestModal";
 
 function TransferRequests({ user }) {
 	const [transferRequests, setTransferRequests] = useState([]);
 	const [stores, setStores] = useState([]);
+	const [userStore, setUserStore] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [success, setSuccess] = useState(null);
@@ -31,14 +32,8 @@ function TransferRequests({ user }) {
 	// Filters
 	const [statusFilter, setStatusFilter] = useState("all");
 
-	// Create transfer modal
+	// Modals
 	const [showCreateModal, setShowCreateModal] = useState(false);
-	const [fromStoreId, setFromStoreId] = useState("");
-	const [toStoreId, setToStoreId] = useState("");
-	const [availableInventory, setAvailableInventory] = useState([]);
-	const [selectedItems, setSelectedItems] = useState([]);
-	const [transferNotes, setTransferNotes] = useState("");
-	const [loadingInventory, setLoadingInventory] = useState(false);
 
 	// Detail modal
 	const [showDetailModal, setShowDetailModal] = useState(false);
@@ -53,7 +48,6 @@ function TransferRequests({ user }) {
 	// User permissions
 	const isPartner = user?.role === "partner";
 	const isManager = user?.role === "store-manager";
-	const userStoreId = user?.assignedStoreId;
 
 	// Load transfer requests
 	const loadTransferRequests = useCallback(async () => {
@@ -83,113 +77,36 @@ function TransferRequests({ user }) {
 	useEffect(() => {
 		const loadStores = async () => {
 			try {
-				const response = await storeAPI.getAllStores();
-				setStores(response.stores);
+				const response = await storeAPI.getStores();
+				const storesList = response.stores || [];
+				setStores(storesList);
+
+				// If manager, find their store
+				if (isManager && user?.assignedStoreId) {
+					const managerStore = storesList.find(
+						(s) => s._id === user.assignedStoreId
+					);
+					setUserStore(managerStore);
+				}
 			} catch (err) {
 				console.error("Error loading stores:", err);
+				setError(err.response?.data?.message || err.message);
 			}
 		};
 		loadStores();
-	}, []);
-
-	// Load available inventory when source store is selected
-	useEffect(() => {
-		if (!fromStoreId) {
-			setAvailableInventory([]);
-			return;
-		}
-
-		const loadInventory = async () => {
-			try {
-				setLoadingInventory(true);
-				const response = await inventoryAPI.getInventoryByStore(fromStoreId);
-				setAvailableInventory(response.inventory);
-			} catch (err) {
-				console.error("Error loading inventory:", err);
-				setError(err.response?.data?.message || err.message);
-			} finally {
-				setLoadingInventory(false);
-			}
-		};
-
-		loadInventory();
-	}, [fromStoreId]);
+	}, [isManager, user?.assignedStoreId]);
 
 	// Handle create transfer request
-	const handleCreateTransfer = async () => {
+	const handleCreateTransfer = async (requestData) => {
 		try {
-			if (!fromStoreId || !toStoreId) {
-				setError("Please select both source and destination stores");
-				return;
-			}
-
-			if (selectedItems.length === 0) {
-				setError("Please select at least one item to transfer");
-				return;
-			}
-
-			const requestData = {
-				fromStoreId,
-				toStoreId,
-				items: selectedItems,
-				notes: transferNotes,
-			};
-
 			await transferRequestAPI.createTransferRequest(requestData);
 			setSuccess("Transfer request created successfully");
 			setShowCreateModal(false);
-			resetCreateForm();
+			setError(null);
 			loadTransferRequests();
 		} catch (err) {
 			setError(err.response?.data?.message || err.message);
 		}
-	};
-
-	// Reset create form
-	const resetCreateForm = () => {
-		setFromStoreId("");
-		setToStoreId("");
-		setSelectedItems([]);
-		setTransferNotes("");
-		setAvailableInventory([]);
-	};
-
-	// Add item to transfer
-	const handleAddItem = (inventory) => {
-		if (selectedItems.find((item) => item.inventoryId === inventory._id)) {
-			setError("Item already added to transfer");
-			return;
-		}
-
-		const newItem = {
-			inventoryId: inventory._id,
-			productId: inventory.productId._id,
-			requestedQuantity: 1,
-			maxQuantity: inventory.quantity,
-			productName: inventory.productId.name,
-			sku: inventory.productId.sku,
-			location: inventory.location,
-		};
-
-		setSelectedItems([...selectedItems, newItem]);
-	};
-
-	// Remove item from transfer
-	const handleRemoveItem = (inventoryId) => {
-		setSelectedItems(
-			selectedItems.filter((item) => item.inventoryId !== inventoryId)
-		);
-	};
-
-	// Update item quantity
-	const handleUpdateQuantity = (inventoryId, quantity) => {
-		setSelectedItems(
-			selectedItems.map((item) =>
-				item.inventoryId === inventoryId
-					? { ...item, requestedQuantity: parseInt(quantity) }
-					: item
-			)
-		);
 	};
 
 	// View request details
@@ -272,6 +189,9 @@ function TransferRequests({ user }) {
 
 		// Managers need store-specific permissions
 		if (isManager) {
+			const userStoreId = user?.assignedStoreId;
+			if (!userStoreId) return false;
+
 			// Submit request (to store)
 			if (currentStatus === "open" && targetStatus === "requested") {
 				return request.toStoreId._id === userStoreId;
@@ -293,7 +213,10 @@ function TransferRequests({ user }) {
 		<Container className="py-4">
 			<Row className="mb-4">
 				<Col>
-					<h2>Transfer Requests</h2>
+					<h2>
+						Transfer Requests
+						{isManager && userStore && ` for ${userStore.name}`}
+					</h2>
 					<p className="text-muted">
 						Manage inventory transfers between stores
 					</p>
@@ -405,207 +328,14 @@ function TransferRequests({ user }) {
 			</Card>
 
 			{/* Create Transfer Modal */}
-			<Modal
+			<CreateTransferRequestModal
 				show={showCreateModal}
-				onHide={() => {
-					setShowCreateModal(false);
-					resetCreateForm();
-				}}
-				size="lg"
-			>
-				<Modal.Header closeButton>
-					<Modal.Title>Create Transfer Request</Modal.Title>
-				</Modal.Header>
-				<Modal.Body>
-					<Form>
-						<Row>
-							<Col md={6}>
-								<Form.Group className="mb-3">
-									<Form.Label>From Store (Source)</Form.Label>
-									<Form.Select
-										value={fromStoreId}
-										onChange={(e) => {
-											setFromStoreId(e.target.value);
-											setSelectedItems([]);
-										}}
-									>
-										<option value="">Select source store...</option>
-										{stores.map((store) => (
-											<option key={store._id} value={store._id}>
-												{store.name} - {store.location}
-											</option>
-										))}
-									</Form.Select>
-								</Form.Group>
-							</Col>
-							<Col md={6}>
-								<Form.Group className="mb-3">
-									<Form.Label>To Store (Destination)</Form.Label>
-									<Form.Select
-										value={toStoreId}
-										onChange={(e) => setToStoreId(e.target.value)}
-									>
-										<option value="">Select destination store...</option>
-										{stores
-											.filter((store) => store._id !== fromStoreId)
-											.map((store) => (
-												<option key={store._id} value={store._id}>
-													{store.name} - {store.location}
-												</option>
-											))}
-									</Form.Select>
-								</Form.Group>
-							</Col>
-						</Row>
-
-						{fromStoreId && (
-							<>
-								<h5 className="mt-3">Available Inventory</h5>
-								{loadingInventory ? (
-									<Spinner animation="border" size="sm" />
-								) : (
-									<div
-										style={{
-											maxHeight: "200px",
-											overflowY: "auto",
-											border: "1px solid #dee2e6",
-											borderRadius: "4px",
-											padding: "10px",
-										}}
-									>
-										<Table size="sm" hover>
-											<thead>
-												<tr>
-													<th>Product</th>
-													<th>SKU</th>
-													<th>Location</th>
-													<th>Available</th>
-													<th>Action</th>
-												</tr>
-											</thead>
-											<tbody>
-												{availableInventory.map((inv) => (
-													<tr key={inv._id}>
-														<td>{inv.productId?.name}</td>
-														<td>
-															<code>{inv.productId?.sku}</code>
-														</td>
-														<td>
-															<Badge
-																bg={
-																	inv.location === "floor"
-																		? "primary"
-																		: "secondary"
-																}
-															>
-																{inv.location}
-															</Badge>
-														</td>
-														<td>{inv.quantity}</td>
-														<td>
-															<Button
-																variant="outline-success"
-																size="sm"
-																onClick={() => handleAddItem(inv)}
-																disabled={selectedItems.some(
-																	(item) => item.inventoryId === inv._id
-																)}
-															>
-																Add
-															</Button>
-														</td>
-													</tr>
-												))}
-											</tbody>
-										</Table>
-									</div>
-								)}
-							</>
-						)}
-
-						{selectedItems.length > 0 && (
-							<>
-								<h5 className="mt-3">Selected Items</h5>
-								<Table size="sm">
-									<thead>
-										<tr>
-											<th>Product</th>
-											<th>SKU</th>
-											<th>Max Qty</th>
-											<th>Request Qty</th>
-											<th>Action</th>
-										</tr>
-									</thead>
-									<tbody>
-										{selectedItems.map((item) => (
-											<tr key={item.inventoryId}>
-												<td>{item.productName}</td>
-												<td>
-													<code>{item.sku}</code>
-												</td>
-												<td>{item.maxQuantity}</td>
-												<td>
-													<Form.Control
-														type="number"
-														min="1"
-														max={item.maxQuantity}
-														value={item.requestedQuantity}
-														onChange={(e) =>
-															handleUpdateQuantity(
-																item.inventoryId,
-																e.target.value
-															)
-														}
-														style={{ width: "80px" }}
-													/>
-												</td>
-												<td>
-													<Button
-														variant="outline-danger"
-														size="sm"
-														onClick={() => handleRemoveItem(item.inventoryId)}
-													>
-														Remove
-													</Button>
-												</td>
-											</tr>
-										))}
-									</tbody>
-								</Table>
-							</>
-						)}
-
-						<Form.Group className="mb-3">
-							<Form.Label>Notes (Optional)</Form.Label>
-							<Form.Control
-								as="textarea"
-								rows={3}
-								value={transferNotes}
-								onChange={(e) => setTransferNotes(e.target.value)}
-								placeholder="Add any notes about this transfer..."
-							/>
-						</Form.Group>
-					</Form>
-				</Modal.Body>
-				<Modal.Footer>
-					<Button
-						variant="secondary"
-						onClick={() => {
-							setShowCreateModal(false);
-							resetCreateForm();
-						}}
-					>
-						Cancel
-					</Button>
-					<Button
-						variant="primary"
-						onClick={handleCreateTransfer}
-						disabled={!fromStoreId || !toStoreId || selectedItems.length === 0}
-					>
-						Create Request
-					</Button>
-				</Modal.Footer>
-			</Modal>
+				onHide={() => setShowCreateModal(false)}
+				stores={stores}
+				user={user}
+				onSubmit={handleCreateTransfer}
+				error={error}
+			/>
 
 			{/* Detail Modal */}
 			<Modal
@@ -637,7 +367,8 @@ function TransferRequests({ user }) {
 									<p>
 										<strong>{selectedRequest.fromStoreId?.name}</strong>
 										<br />
-										{selectedRequest.fromStoreId?.location}
+										{selectedRequest.fromStoreId?.location?.city},{" "}
+										{selectedRequest.fromStoreId?.location?.state}
 									</p>
 								</Col>
 								<Col md={6}>
@@ -645,7 +376,8 @@ function TransferRequests({ user }) {
 									<p>
 										<strong>{selectedRequest.toStoreId?.name}</strong>
 										<br />
-										{selectedRequest.toStoreId?.location}
+										{selectedRequest.toStoreId?.location?.city},{" "}
+										{selectedRequest.toStoreId?.location?.state}
 									</p>
 								</Col>
 							</Row>
