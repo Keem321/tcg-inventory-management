@@ -21,13 +21,21 @@ exports.findAll = async (filters = {}) => {
 };
 
 /**
- * Find inventory by store ID
+ * Find inventory by store
  * @param {string} storeId - Store ID
  * @param {Object} filters - Additional filters
  * @returns {Promise<Array>} Array of inventory documents
  */
 exports.findByStore = async (storeId, filters = {}) => {
-	return await Inventory.find({ storeId, ...filters, isActive: true })
+	const mongoose = require("mongoose");
+	// Convert storeId string to ObjectId for proper query
+	const storeObjectId = new mongoose.Types.ObjectId(storeId);
+
+	return await Inventory.find({
+		storeId: storeObjectId,
+		...filters,
+		isActive: true,
+	})
 		.populate("storeId", "name location fullAddress")
 		.populate("productId", "name sku productType brand")
 		.sort({ location: 1, productId: 1 });

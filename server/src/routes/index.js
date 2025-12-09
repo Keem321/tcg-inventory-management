@@ -11,6 +11,7 @@ const authRoutes = require("./auth");
 const storeRoutes = require("./store.routes");
 const inventoryRoutes = require("./inventory.routes");
 const productRoutes = require("./product.routes");
+const transferRequestRoutes = require("./transferRequest.routes");
 
 const router = express.Router();
 
@@ -24,6 +25,7 @@ router.use(requireAuth);
 router.use("/stores", storeRoutes);
 router.use("/inventory", inventoryRoutes);
 router.use("/products", productRoutes);
+router.use("/transfer-requests", transferRequestRoutes);
 
 // API health check
 router.get("/health", (req, res) => {

@@ -44,6 +44,14 @@ exports.findBySku = async (sku) => {
 };
 
 /**
+ * Get all unique brands
+ * @returns {Promise<Array>} Array of brand names
+ */
+exports.getAllBrands = async () => {
+	return await Product.distinct("brand");
+};
+
+/**
  * Create new product
  * @param {Object} productData - Product data
  * @returns {Promise<Object>} Created product document

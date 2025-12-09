@@ -14,6 +14,13 @@ const router = express.Router();
 router.use(requireRole([USER_ROLES.PARTNER]));
 
 /**
+ * GET /api/products/brands
+ * Get all unique brands
+ * Authorization: Partners only
+ */
+router.get("/brands", productController.getAllBrands);
+
+/**
  * GET /api/products
  * Get all products with optional filtering
  * Query params: productType, brand, isActive, search
@@ -25,6 +32,7 @@ router.get("/", productController.getAllProducts);
  * GET /api/products/:id
  * Get product by ID with inventory details
  * Authorization: Partners only
+ * NOTE: This must come after other get routes to avoid route conflicts
  */
 router.get("/:id", productController.getProductById);
 

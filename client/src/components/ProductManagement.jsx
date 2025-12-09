@@ -13,38 +13,47 @@ import {
 	Collapse,
 } from "react-bootstrap";
 import { productAPI } from "../api/products";
+import CreateProductModal from "./modals/CreateProductModal";
+import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "../constants/enums";
 
 /**
- * Product Management Component (Partner Only)
+ * Product Management Component (Partner Only!)
  * Displays all products with expandable details showing inventory across stores
  */
+// eslint-disable-next-line no-unused-vars
 function ProductManagement({ user }) {
 	const [products, setProducts] = useState([]);
+	const [brands, setBrands] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [expandedProducts, setExpandedProducts] = useState(new Set());
 	const [productDetails, setProductDetails] = useState({});
 	const [loadingDetails, setLoadingDetails] = useState(new Set());
 
+	// Modal state
+	const [showCreateModal, setShowCreateModal] = useState(false);
+
 	// Filters
 	const [productTypeFilter, setProductTypeFilter] = useState("");
 	const [brandFilter, setBrandFilter] = useState("");
 	const [searchTerm, setSearchTerm] = useState("");
-	const [showInactive, setShowInactive] = useState(false);
+	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+	const [activeFilter, setActiveFilter] = useState("active"); // "active", "inactive", "all"
 
 	// Product types for filter
-	const productTypes = [
-		"singleCard",
-		"boosterPack",
-		"collectorBooster",
-		"deck",
-		"deckBox",
-		"dice",
-		"sleeves",
-		"playmat",
-		"binder",
-		"other",
-	];
+	const productTypes = Object.values(PRODUCT_TYPES);
+
+	// Debounce search term with minimum length validation
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			// Only update if search term is empty or meets minimum length
+			if (searchTerm.length === 0 || searchTerm.length >= 2) {
+				setDebouncedSearchTerm(searchTerm);
+			}
+		}, 300); // 300ms delay
+
+		return () => clearTimeout(timer);
+	}, [searchTerm]);
 
 	// Load products
 	const loadProducts = useCallback(async () => {
@@ -55,9 +64,10 @@ function ProductManagement({ user }) {
 			const options = {};
 			if (productTypeFilter) options.productType = productTypeFilter;
 			if (brandFilter) options.brand = brandFilter;
-			if (searchTerm) options.search = searchTerm;
-			if (showInactive) options.isActive = undefined;
-			else options.isActive = true;
+			if (debouncedSearchTerm) options.search = debouncedSearchTerm;
+			if (activeFilter === "active") options.isActive = true;
+			else if (activeFilter === "inactive") options.isActive = false;
+			// if "all", don't set isActive filter
 
 			const response = await productAPI.getProducts(options);
 			setProducts(response.products);
@@ -66,11 +76,24 @@ function ProductManagement({ user }) {
 		} finally {
 			setLoading(false);
 		}
-	}, [productTypeFilter, brandFilter, searchTerm, showInactive]);
+	}, [productTypeFilter, brandFilter, debouncedSearchTerm, activeFilter]);
 
 	useEffect(() => {
 		loadProducts();
 	}, [loadProducts]);
+
+	// Load all brands on mount
+	useEffect(() => {
+		const loadBrands = async () => {
+			try {
+				const response = await productAPI.getBrands();
+				setBrands(response.brands);
+			} catch (err) {
+				console.error("Error loading brands:", err);
+			}
+		};
+		loadBrands();
+	}, []);
 
 	// Toggle product expansion and load details
 	const toggleProductExpansion = async (productId) => {
@@ -108,29 +131,14 @@ function ProductManagement({ user }) {
 		}
 	};
 
-	// Get unique brands from products
-	const uniqueBrands = [...new Set(products.map((p) => p.brand))].sort();
-
 	// Format product type for display
 	const formatProductType = (type) => {
-		const typeMap = {
-			singleCard: "Single Card",
-			boosterPack: "Booster Pack",
-			collectorBooster: "Collector Booster",
-			deck: "Deck",
-			deckBox: "Deck Box",
-			dice: "Dice",
-			sleeves: "Sleeves",
-			playmat: "Playmat",
-			binder: "Binder",
-			other: "Other",
-		};
-		return typeMap[type] || type;
+		return PRODUCT_TYPE_LABELS[type] || type;
 	};
 
-	// Handle delete product
+	// Handle delete product (soft delete - deactivate)
 	const handleDelete = async (productId) => {
-		if (!window.confirm("Are you sure you want to delete this product?")) {
+		if (!window.confirm("Are you sure you want to deactivate this product? It will no longer be available for new inventory.")) {
 			return;
 		}
 
@@ -142,15 +150,12 @@ function ProductManagement({ user }) {
 		}
 	};
 
-	if (loading) {
-		return (
-			<Container className="py-5 text-center">
-				<Spinner animation="border" role="status">
-					<span className="visually-hidden">Loading...</span>
-				</Spinner>
-			</Container>
-		);
-	}
+	// Handle create product
+	const handleCreateProduct = async (productData) => {
+		await productAPI.createProduct(productData);
+		loadProducts();
+		setShowCreateModal(false);
+	};
 
 	return (
 		<Container className="py-4">
@@ -163,6 +168,11 @@ function ProductManagement({ user }) {
 					<p className="text-muted">
 						Note: add dataTable like ordering functionality?
 					</p>
+				</Col>
+				<Col xs="auto">
+					<Button variant="primary" onClick={() => setShowCreateModal(true)}>
+						Add New Product
+					</Button>
 				</Col>
 			</Row>
 
@@ -200,7 +210,7 @@ function ProductManagement({ user }) {
 									onChange={(e) => setBrandFilter(e.target.value)}
 								>
 									<option value="">All Brands</option>
-									{uniqueBrands.map((brand) => (
+									{brands.map((brand) => (
 										<option key={brand} value={brand}>
 											{brand}
 										</option>
@@ -221,13 +231,15 @@ function ProductManagement({ user }) {
 						</Col>
 						<Col md={2}>
 							<Form.Group>
-								<Form.Label>&nbsp;</Form.Label>
-								<Form.Check
-									type="checkbox"
-									label="Show Inactive"
-									checked={showInactive}
-									onChange={(e) => setShowInactive(e.target.checked)}
-								/>
+								<Form.Label>Status</Form.Label>
+								<Form.Select
+									value={activeFilter}
+									onChange={(e) => setActiveFilter(e.target.value)}
+								>
+									<option value="active">Show Active</option>
+									<option value="inactive">Show Inactive</option>
+									<option value="all">Show All</option>
+								</Form.Select>
 							</Form.Group>
 						</Col>
 					</Row>
@@ -237,101 +249,118 @@ function ProductManagement({ user }) {
 			{/* Products Table */}
 			<Card>
 				<Card.Body>
-					<Table responsive hover>
-						<thead>
-							<tr>
-								<th style={{ width: "50px" }}></th>
-								<th>SKU</th>
-								<th>Name</th>
-								<th>Type</th>
-								<th>Brand</th>
-								<th>Price</th>
-								<th>Status</th>
-								<th>Actions</th>
-							</tr>
-						</thead>
-						<tbody>
-							{products.length === 0 ? (
+					{loading ? (
+						<div className="text-center py-5">
+							<Spinner animation="border" role="status">
+								<span className="visually-hidden">Loading...</span>
+							</Spinner>
+							<p className="text-muted mt-2">Loading products...</p>
+						</div>
+					) : (
+						<Table responsive hover>
+							<thead>
 								<tr>
-									<td colSpan="8" className="text-center text-muted">
-										No products found
-									</td>
+									<th style={{ width: "50px" }}></th>
+									<th>SKU</th>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Brand</th>
+									<th>Price</th>
+									<th>Status</th>
+									<th>Actions</th>
 								</tr>
-							) : (
-								products.map((product) => (
-									<>
-										{/* Main Product Row */}
-										<tr key={product._id}>
-											<td>
+							</thead>
+							<tbody>
+								{products.length === 0 ? (
+									<tr>
+										<td colSpan="8" className="text-center text-muted">
+											No products found
+										</td>
+									</tr>
+								) : (
+									products.map((product) => (
+										<>
+											{/* Main Product Row */}
+											<tr key={product._id}>
+												<td>
+													<Button
+														variant="link"
+														size="sm"
+														onClick={() => toggleProductExpansion(product._id)}
+													>
+														{expandedProducts.has(product._id) ? "▼" : "▶"}
+													</Button>
+												</td>
+												<td>
+													<code>{product.sku}</code>
+												</td>
+												<td>
+													<strong>{product.name}</strong>
+													{product.cardDetails && (
+														<div className="small text-muted">
+															{product.cardDetails.set} #
+															{product.cardDetails.cardNumber}
+														</div>
+													)}
+												</td>
+												<td>{formatProductType(product.productType)}</td>
+												<td>{product.brand}</td>
+												<td>${product.basePrice.toFixed(2)}</td>
+												<td>
+													{product.isActive ? (
+														<Badge bg="success">Active</Badge>
+													) : (
+														<Badge bg="secondary">Inactive</Badge>
+													)}
+												</td>
+												<td>
 												<Button
-													variant="link"
-													size="sm"
-													onClick={() => toggleProductExpansion(product._id)}
-												>
-													{expandedProducts.has(product._id) ? "▼" : "▶"}
-												</Button>
-											</td>
-											<td>
-												<code>{product.sku}</code>
-											</td>
-											<td>
-												<strong>{product.name}</strong>
-												{product.cardDetails && (
-													<div className="small text-muted">
-														{product.cardDetails.set} #
-														{product.cardDetails.cardNumber}
-													</div>
-												)}
-											</td>
-											<td>{formatProductType(product.productType)}</td>
-											<td>{product.brand}</td>
-											<td>${product.basePrice.toFixed(2)}</td>
-											<td>
-												{product.isActive ? (
-													<Badge bg="success">Active</Badge>
-												) : (
-													<Badge bg="secondary">Inactive</Badge>
-												)}
-											</td>
-											<td>
-												<Button
-													variant="outline-danger"
+													variant="outline-warning"
 													size="sm"
 													onClick={() => handleDelete(product._id)}
+													disabled={!product.isActive}
 												>
-													Delete
+													Deactivate
 												</Button>
-											</td>
-										</tr>
+												</td>
+											</tr>
 
-										{/* Expanded Details Row */}
-										<tr>
-											<td colSpan="8" style={{ padding: 0 }}>
-												<Collapse in={expandedProducts.has(product._id)}>
-													<div className="p-3 bg-light">
-														{loadingDetails.has(product._id) ? (
-															<div className="text-center">
-																<Spinner animation="border" size="sm" />
-															</div>
-														) : productDetails[product._id] ? (
-															<ProductDetails
-																product={productDetails[product._id].product}
-																inventory={
-																	productDetails[product._id].inventory
-																}
-															/>
-														) : null}
-													</div>
-												</Collapse>
-											</td>
-										</tr>
-									</>
-								))
-							)}
-						</tbody>
-					</Table>
+											{/* Expanded Details Row */}
+											<tr>
+												<td colSpan="8" style={{ padding: 0 }}>
+													<Collapse in={expandedProducts.has(product._id)}>
+														<div className="p-3 bg-light">
+															{loadingDetails.has(product._id) ? (
+																<div className="text-center">
+																	<Spinner animation="border" size="sm" />
+																</div>
+															) : productDetails[product._id] ? (
+																<ProductDetails
+																	product={productDetails[product._id].product}
+																	inventory={
+																		productDetails[product._id].inventory
+																	}
+																/>
+															) : null}
+														</div>
+													</Collapse>
+												</td>
+											</tr>
+										</>
+									))
+								)}
+							</tbody>
+						</Table>
+					)}
 				</Card.Body>
 			</Card>
+
+			{/* Create Product Modal */}
+			<CreateProductModal
+				show={showCreateModal}
+				onHide={() => setShowCreateModal(false)}
+				onProductCreated={handleCreateProduct}
+			/>
 		</Container>
 	);
 }

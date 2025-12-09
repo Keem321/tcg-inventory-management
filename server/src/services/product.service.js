@@ -25,6 +25,15 @@ exports.getAllProducts = async (filters = {}) => {
 };
 
 /**
+ * Get all unique brands
+ * @returns {Array} Array of brand names sorted alphabetically
+ */
+exports.getAllBrands = async () => {
+	const brands = await productRepo.getAllBrands();
+	return brands.filter(Boolean).sort(); // Filter out null/empty and sort
+};
+
+/**
  * Get product by ID with inventory details across all stores
  * @param {String} productId - Product ID
  * @returns {Object} Product with inventory breakdown
@@ -112,6 +121,7 @@ exports.createProduct = async (productData) => {
 		unitSize,
 		basePrice,
 		bulkQuantity,
+		isActive,
 	} = productData;
 
 	// Validate required fields
@@ -146,6 +156,7 @@ exports.createProduct = async (productData) => {
 		unitSize,
 		basePrice,
 		bulkQuantity,
+		isActive: isActive !== undefined ? isActive : true,
 	});
 };
 
@@ -196,9 +207,9 @@ exports.updateProduct = async (productId, updateData) => {
 };
 
 /**
- * Delete product (only if no inventory exists)
+ * Delete product (soft delete - set isActive to false)
  * @param {String} productId - Product ID
- * @throws {Error} If product not found or has inventory
+ * @throws {Error} If product not found
  */
 exports.deleteProduct = async (productId) => {
 	// Validate ObjectId format
@@ -216,16 +227,6 @@ exports.deleteProduct = async (productId) => {
 		throw error;
 	}
 
-	// Check if any inventory exists for this product
-	const inventoryCount = await productRepo.countInventory(productId);
-
-	if (inventoryCount > 0) {
-		const error = new Error(
-			`Cannot delete product with ${inventoryCount} inventory records. Set to inactive instead.`
-		);
-		error.statusCode = 400;
-		throw error;
-	}
-
-	await productRepo.delete(productId);
+	// Soft delete by setting isActive to false
+	return productRepo.update(productId, { isActive: false });
 };

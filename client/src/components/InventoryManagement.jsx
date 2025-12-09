@@ -90,7 +90,7 @@ function InventoryManagement({ user }) {
 			if (isPartner && selectedStore === "all") {
 				// Partner viewing all stores
 				response = await inventoryAPI.getAllInventory(options);
-			} else if (isPartner && selectedStore) {
+			} else if (isPartner && selectedStore && selectedStore !== "all") {
 				// Partner viewing specific store
 				currentStoreId = selectedStore;
 				response = await inventoryAPI.getInventoryByStore(
@@ -121,7 +121,7 @@ function InventoryManagement({ user }) {
 				setStoreCapacity({ current: 0, max: 0 });
 			}
 		} catch (err) {
-			setError(err.message);
+			setError(err.response?.data?.message || err.message);
 		}
 	}, [
 		locationFilter,
@@ -149,7 +149,7 @@ function InventoryManagement({ user }) {
 				setSelectedStore("all");
 			}
 		} catch (err) {
-			setError(err.message);
+			setError(err.response?.data?.message || err.message);
 		} finally {
 			setLoading(false);
 		}
@@ -161,10 +161,35 @@ function InventoryManagement({ user }) {
 
 	// Reload inventory when filters change or when selectedStore is first set
 	useEffect(() => {
-		if (!loading && selectedStore) {
-			loadInventory();
+		// Don't load if still loading stores, or if no store selected
+		if (loading || !selectedStore) {
+			return;
 		}
-	}, [selectedStore, locationFilter, loading, loadInventory]);
+
+		// For partners, validate that selectedStore is either "all" or a valid ObjectId
+		if (isPartner) {
+			if (selectedStore !== "all" && !/^[0-9a-fA-F]{24}$/.test(selectedStore)) {
+				return; // Skip if invalid format
+			}
+		}
+
+		// For employees/managers, validate assignedStoreId
+		if (!isPartner && hasStoreAssignment) {
+			if (!/^[0-9a-fA-F]{24}$/.test(user?.assignedStoreId)) {
+				return; // Skip if invalid format
+			}
+		}
+
+		loadInventory();
+	}, [
+		selectedStore,
+		locationFilter,
+		loading,
+		loadInventory,
+		isPartner,
+		hasStoreAssignment,
+		user?.assignedStoreId,
+	]);
 
 	// Filter inventory by search term
 	const filteredInventory = inventory.filter((item) => {
@@ -198,7 +223,10 @@ function InventoryManagement({ user }) {
 			setProducts(response.products || []);
 			setShowCreateModal(true);
 		} catch (err) {
-			setError("Failed to load products: " + err.message);
+			setError(
+				"Failed to load products: " +
+					(err.response?.data?.message || err.message)
+			);
 		}
 	};
 
@@ -276,7 +304,10 @@ function InventoryManagement({ user }) {
 			setProductSearch("");
 			await loadInventory();
 		} catch (err) {
-			setError("Failed to create inventory: " + err.message);
+			setError(
+				"Failed to create inventory: " +
+					(err.response?.data?.message || err.message)
+			);
 		}
 	};
 
@@ -322,7 +353,10 @@ function InventoryManagement({ user }) {
 			setSelectedItem(null);
 			await loadInventory();
 		} catch (err) {
-			setError("Failed to update inventory: " + err.message);
+			setError(
+				"Failed to update inventory: " +
+					(err.response?.data?.message || err.message)
+			);
 		}
 	};
 
@@ -344,7 +378,10 @@ function InventoryManagement({ user }) {
 			setSelectedItem(null);
 			await loadInventory();
 		} catch (err) {
-			setError("Failed to delete inventory: " + err.message);
+			setError(
+				"Failed to delete inventory: " +
+					(err.response?.data?.message || err.message)
+			);
 		}
 	};
 

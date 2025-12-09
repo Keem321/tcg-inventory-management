@@ -5,6 +5,7 @@ import Navigation from "./Navigation";
 import StoreManagement from "./StoreManagement";
 import InventoryManagement from "./InventoryManagement";
 import ProductManagement from "./ProductManagement";
+import TransferRequests from "./TransferRequests";
 
 function Dashboard({ user, onLogout }) {
 	const [store, setStore] = useState(null);
@@ -95,6 +96,18 @@ function Dashboard({ user, onLogout }) {
 					onLogout={onLogout}
 				/>
 				<ProductManagement user={user} />
+			</>
+		);
+	} else if (currentView === "transfers") {
+		return (
+			<>
+				<Navigation
+					user={user}
+					currentView={currentView}
+					onNavigate={setCurrentView}
+					onLogout={onLogout}
+				/>
+				<TransferRequests user={user} />
 			</>
 		);
 	}

@@ -22,6 +22,22 @@ exports.getAllProducts = async (req, res) => {
 };
 
 /**
+ * Get all unique brands
+ */
+exports.getAllBrands = async (req, res) => {
+	try {
+		const brands = await productService.getAllBrands();
+		res.json({ success: true, brands });
+	} catch (error) {
+		console.error("Get brands error:", error);
+		res.status(500).json({
+			success: false,
+			message: "Error fetching brands",
+		});
+	}
+};
+
+/**
  * Get product by ID with inventory details
  */
 exports.getProductById = async (req, res) => {

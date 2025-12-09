@@ -31,6 +31,17 @@ export const productAPI = {
 	},
 
 	/**
+	 * Get all unique brands
+	 * @returns {Promise<Object>} Brands data
+	 */
+	getBrands: async () => {
+		const response = await axios.get(`${API_URL}/api/products/brands`, {
+			withCredentials: true,
+		});
+		return response.data;
+	},
+
+	/**
 	 * Get product by ID with inventory details
 	 * @param {string} productId - Product ID
 	 * @returns {Promise<Object>} Product data with inventory breakdown

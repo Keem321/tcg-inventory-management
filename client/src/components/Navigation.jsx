@@ -81,8 +81,8 @@ function Navigation({ user, currentView, onNavigate, onLogout }) {
 							</Nav.Link>
 						)}
 
-						{/* Transfer Requests - Managers Only */}
-						{isManager && (
+						{/* Transfer Requests - Managers and Partners */}
+						{(isManager || isPartner) && (
 							<Nav.Link
 								active={currentView === "transfers"}
 								onClick={() => onNavigate("transfers")}
@@ -90,8 +90,7 @@ function Navigation({ user, currentView, onNavigate, onLogout }) {
 								Transfer Requests
 							</Nav.Link>
 						)}
-					</Nav>
-
+					</Nav>{" "}
 					<Nav>
 						<Navbar.Text className="me-3">
 							{user.fullName} {getRoleBadge(user.role)}
