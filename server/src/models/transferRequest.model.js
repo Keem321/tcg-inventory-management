@@ -139,6 +139,23 @@ const transferRequestSchema = new mongoose.Schema(
 			trim: true,
 			maxlength: [1000, "Notes must not exceed 1000 characters"],
 		},
+		statusHistory: [
+			{
+				status: {
+					type: String,
+					required: true,
+					enum: ["open", "requested", "sent", "complete", "closed"],
+				},
+				changedBy: {
+					type: mongoose.Schema.Types.ObjectId,
+					ref: "User",
+				},
+				changedAt: {
+					type: Date,
+					default: Date.now,
+				},
+			},
+		],
 		isActive: {
 			type: Boolean,
 			default: true,
@@ -221,4 +238,8 @@ transferRequestSchema.methods.canTransitionTo = function (
 	return false;
 };
 
-module.exports = mongoose.model("TransferRequest", transferRequestSchema);
+const TransferRequest =
+	mongoose.models.TransferRequest ||
+	mongoose.model("TransferRequest", transferRequestSchema);
+
+module.exports = { TransferRequest };

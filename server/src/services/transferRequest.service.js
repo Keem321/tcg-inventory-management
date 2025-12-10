@@ -112,6 +112,13 @@ exports.createTransferRequest = async (requestData, user) => {
 		notes,
 		status: "open",
 		createdBy: user._id,
+		statusHistory: [
+			{
+				status: "open",
+				changedBy: user._id,
+				changedAt: new Date(),
+			},
+		],
 	});
 
 	return transferRequest;
@@ -193,7 +200,7 @@ exports.updateTransferStatus = async (
 	user,
 	additionalData = {}
 ) => {
-	const transferRequest = await this.getTransferRequestById(id, user);
+	const transferRequest = await exports.getTransferRequestById(id, user);
 
 	// Check if user can transition to new status
 	const userStoreId = user.assignedStoreId?.toString();
@@ -207,6 +214,13 @@ exports.updateTransferStatus = async (
 
 	const updateData = { status: newStatus };
 
+	// Add to status history
+	const statusHistoryEntry = {
+		status: newStatus,
+		changedBy: user._id,
+		changedAt: new Date(),
+	};
+
 	// Update tracking fields based on status
 	switch (newStatus) {
 		case "requested":
@@ -218,14 +232,14 @@ exports.updateTransferStatus = async (
 			updateData.sentBy = user._id;
 			updateData.sentAt = new Date();
 			// Deduct inventory from source store
-			await this.deductInventoryFromSource(transferRequest);
+			await exports.deductInventoryFromSource(transferRequest);
 			break;
 
 		case "complete":
 			updateData.completedBy = user._id;
 			updateData.completedAt = new Date();
 			// Add inventory to destination store
-			await this.addInventoryToDestination(transferRequest);
+			await exports.addInventoryToDestination(transferRequest);
 			break;
 
 		case "closed":
@@ -236,10 +250,13 @@ exports.updateTransferStatus = async (
 			}
 			// If was already sent, return inventory to source
 			if (transferRequest.status === "sent") {
-				await this.returnInventoryToSource(transferRequest);
+				await exports.returnInventoryToSource(transferRequest);
 			}
 			break;
 	}
+
+	// Push new status to history
+	updateData.$push = { statusHistory: statusHistoryEntry };
 
 	return await transferRequestRepo.update(id, updateData);
 };
@@ -385,7 +402,7 @@ exports.deleteTransferRequest = async (id, user) => {
 		throw error;
 	}
 
-	const transferRequest = await this.getTransferRequestById(id, user);
+	const transferRequest = await exports.getTransferRequestById(id, user);
 
 	if (!["open", "closed"].includes(transferRequest.status)) {
 		const error = new Error(

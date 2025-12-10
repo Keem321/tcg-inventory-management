@@ -21,7 +21,8 @@ export const userFixtures = {
 	partner: (overrides = {}) => ({
 		username: "partner1",
 		email: "partner@tcg.com",
-		passwordHash: "hashedpassword",
+		passwordHash:
+			"$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
 		firstName: "Partner",
 		lastName: "User",
 		role: USER_ROLES.PARTNER,
@@ -33,7 +34,8 @@ export const userFixtures = {
 	storeManager: (storeId, overrides = {}) => ({
 		username: "manager1",
 		email: "manager@tcg.com",
-		passwordHash: "hashedpassword",
+		passwordHash:
+			"$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
 		firstName: "Manager",
 		lastName: "User",
 		role: USER_ROLES.STORE_MANAGER,
@@ -45,7 +47,8 @@ export const userFixtures = {
 	employee: (storeId, overrides = {}) => ({
 		username: "employee1",
 		email: "employee@tcg.com",
-		passwordHash: "hashedpassword",
+		passwordHash:
+			"$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
 		firstName: "Employee",
 		lastName: "User",
 		role: USER_ROLES.EMPLOYEE,
@@ -57,7 +60,8 @@ export const userFixtures = {
 	inactive: (overrides = {}) => ({
 		username: "inactive1",
 		email: "inactive@tcg.com",
-		passwordHash: "hashedpassword",
+		passwordHash:
+			"$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
 		firstName: "Inactive",
 		lastName: "User",
 		role: USER_ROLES.EMPLOYEE,

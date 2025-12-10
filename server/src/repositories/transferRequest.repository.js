@@ -3,8 +3,7 @@
  * Handles all database operations for transfer requests
  */
 
-const TransferRequest = require("../models/transferRequest.model");
-const mongoose = require("mongoose");
+const { TransferRequest } = require("../models/transferRequest.model");
 
 /**
  * Generate unique request number
@@ -59,10 +58,8 @@ exports.findAll = async (filters = {}) => {
  * @returns {Promise<Array>} Array of transfer request documents
  */
 exports.findByStore = async (storeId, filters = {}) => {
-	const storeObjectId = new mongoose.Types.ObjectId(storeId);
-
 	return await TransferRequest.find({
-		$or: [{ fromStoreId: storeObjectId }, { toStoreId: storeObjectId }],
+		$or: [{ fromStoreId: storeId }, { toStoreId: storeId }],
 		...filters,
 		isActive: true,
 	})
@@ -154,8 +151,7 @@ exports.countByStatus = async (storeId = null) => {
 	const match = { isActive: true };
 
 	if (storeId) {
-		const storeObjectId = new mongoose.Types.ObjectId(storeId);
-		match.$or = [{ fromStoreId: storeObjectId }, { toStoreId: storeObjectId }];
+		match.$or = [{ fromStoreId: storeId }, { toStoreId: storeId }];
 	}
 
 	const result = await TransferRequest.aggregate([

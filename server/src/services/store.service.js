@@ -137,9 +137,10 @@ exports.updateStore = async (storeId, updateData) => {
 };
 
 /**
- * Delete store
+ * Delete store (soft delete)
  * @param {String} storeId - Store ID
- * @throws {Error} If store not found or has assigned users
+ * @returns {Object} Updated store document
+ * @throws {Error} If store not found, has assigned users, has inventory, or invalid ID
  */
 exports.deleteStore = async (storeId) => {
 	// Validate ObjectId
@@ -167,5 +168,17 @@ exports.deleteStore = async (storeId) => {
 		throw error;
 	}
 
-	await storeRepo.delete(storeId);
+	// Check for existing inventory
+	const inventoryRepo = require("../repositories/inventory.repository");
+	const activeInventory = await inventoryRepo.findByStore(storeId, {
+		isActive: true,
+	});
+	if (activeInventory && activeInventory.length > 0) {
+		const error = new Error("Cannot delete store with existing inventory");
+		error.statusCode = 400;
+		throw error;
+	}
+
+	// Soft delete
+	return await storeRepo.softDelete(storeId);
 };

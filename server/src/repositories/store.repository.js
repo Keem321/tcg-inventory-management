@@ -64,6 +64,19 @@ exports.delete = async (id) => {
 };
 
 /**
+ * Soft delete store by ID (set isActive to false)
+ * @param {string} id - Store ID
+ * @returns {Promise<Object|null>} Updated store document or null
+ */
+exports.softDelete = async (id) => {
+	const store = await Store.findById(id);
+	if (!store) return null;
+
+	store.isActive = false;
+	return await store.save();
+};
+
+/**
  * Count users assigned to a store
  * @param {string} storeId - Store ID
  * @returns {Promise<number>} Number of assigned users
