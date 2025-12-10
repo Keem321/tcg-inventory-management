@@ -3,7 +3,6 @@ import { Spinner, Container } from "react-bootstrap";
 import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import { authAPI } from "./api/auth";
-import "./App.css";
 
 function App() {
 	// first param is current state, second param is function to update state

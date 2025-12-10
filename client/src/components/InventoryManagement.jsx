@@ -23,6 +23,7 @@ import { productAPI } from "../api/products";
 import CreateInventoryModal from "./modals/CreateInventoryModal";
 import UpdateInventoryModal from "./modals/UpdateInventoryModal";
 import DeleteInventoryModal from "./modals/DeleteInventoryModal";
+import { useDebounce } from "../hooks";
 
 /**
  * Inventory Management Component
@@ -45,6 +46,7 @@ function InventoryManagement({ user }) {
 	const [selectedStore, setSelectedStore] = useState("");
 	const [locationFilter, setLocationFilter] = useState("all"); // all, floor, back
 	const [searchTerm, setSearchTerm] = useState("");
+	const debouncedSearchTerm = useDebounce(searchTerm, 300, 2);
 
 	// CRUD Modals
 	const [showCreateModal, setShowCreateModal] = useState(false);
@@ -191,11 +193,11 @@ function InventoryManagement({ user }) {
 		user?.assignedStoreId,
 	]);
 
-	// Filter inventory by search term
+	// Filter inventory by search term (debounced)
 	const filteredInventory = inventory.filter((item) => {
-		if (!searchTerm) return true;
+		if (!debouncedSearchTerm) return true;
 
-		const search = searchTerm.toLowerCase();
+		const search = debouncedSearchTerm.toLowerCase();
 		const productName = item.productId?.name?.toLowerCase() || "";
 		const productSku = item.productId?.sku?.toLowerCase() || "";
 		const storeName = item.storeId?.name?.toLowerCase() || "";
@@ -546,6 +548,11 @@ function InventoryManagement({ user }) {
 									value={searchTerm}
 									onChange={(e) => setSearchTerm(e.target.value)}
 								/>
+								{searchTerm.length > 0 && searchTerm.length < 2 && (
+									<Form.Text className="text-muted">
+										Enter at least 2 characters to search
+									</Form.Text>
+								)}
 							</Form.Group>
 						</Col>
 					</Row>

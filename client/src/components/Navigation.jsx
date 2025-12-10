@@ -46,17 +46,11 @@ function Navigation({ user, currentView, onNavigate, onLogout }) {
 				<Navbar.Toggle aria-controls="basic-navbar-nav" />
 				<Navbar.Collapse id="basic-navbar-nav">
 					<Nav className="me-auto">
-						<Nav.Link
-							active={currentView === "dashboard"}
-							onClick={() => onNavigate("dashboard")}
-						>
-							Dashboard
-						</Nav.Link>
-
 						{/* Manage Inventory - Everyone */}
 						<Nav.Link
 							active={currentView === "inventory"}
 							onClick={() => onNavigate("inventory")}
+							className="mx-2"
 						>
 							Manage Inventory
 						</Nav.Link>
@@ -66,6 +60,7 @@ function Navigation({ user, currentView, onNavigate, onLogout }) {
 							<Nav.Link
 								active={currentView === "stores"}
 								onClick={() => onNavigate("stores")}
+								className="mx-2"
 							>
 								Manage Stores
 							</Nav.Link>
@@ -76,6 +71,7 @@ function Navigation({ user, currentView, onNavigate, onLogout }) {
 							<Nav.Link
 								active={currentView === "products"}
 								onClick={() => onNavigate("products")}
+								className="mx-2"
 							>
 								Manage Products
 							</Nav.Link>
@@ -86,6 +82,7 @@ function Navigation({ user, currentView, onNavigate, onLogout }) {
 							<Nav.Link
 								active={currentView === "transfers"}
 								onClick={() => onNavigate("transfers")}
+								className="mx-2"
 							>
 								Transfer Requests
 							</Nav.Link>

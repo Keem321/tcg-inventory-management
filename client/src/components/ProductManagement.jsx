@@ -15,6 +15,7 @@ import {
 import { productAPI } from "../api/products";
 import CreateProductModal from "./modals/CreateProductModal";
 import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "../constants/enums";
+import { useDebounce } from "../hooks";
 
 /**
  * Product Management Component (Partner Only!)
@@ -37,23 +38,11 @@ function ProductManagement({ user }) {
 	const [productTypeFilter, setProductTypeFilter] = useState("");
 	const [brandFilter, setBrandFilter] = useState("");
 	const [searchTerm, setSearchTerm] = useState("");
-	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+	const debouncedSearchTerm = useDebounce(searchTerm, 300, 2);
 	const [activeFilter, setActiveFilter] = useState("active"); // "active", "inactive", "all"
 
 	// Product types for filter
 	const productTypes = Object.values(PRODUCT_TYPES);
-
-	// Debounce search term with minimum length validation
-	useEffect(() => {
-		const timer = setTimeout(() => {
-			// Only update if search term is empty or meets minimum length
-			if (searchTerm.length === 0 || searchTerm.length >= 2) {
-				setDebouncedSearchTerm(searchTerm);
-			}
-		}, 300); // 300ms delay
-
-		return () => clearTimeout(timer);
-	}, [searchTerm]);
 
 	// Load products
 	const loadProducts = useCallback(async () => {
@@ -227,6 +216,11 @@ function ProductManagement({ user }) {
 									value={searchTerm}
 									onChange={(e) => setSearchTerm(e.target.value)}
 								/>
+								{searchTerm.length > 0 && searchTerm.length < 2 && (
+									<Form.Text className="text-muted">
+										Enter at least 2 characters to search
+									</Form.Text>
+								)}
 							</Form.Group>
 						</Col>
 						<Col md={2}>
