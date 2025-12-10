@@ -330,27 +330,43 @@ function InventoryManagement({ user }) {
 
 			if (!selectedItem) return;
 
-			// Calculate capacity change
-			const oldSpace = selectedItem.productId?.unitSize * selectedItem.quantity;
-			const newSpace = selectedItem.productId?.unitSize * updateForm.quantity;
-			const spaceChange = newSpace - oldSpace;
-			const availableSpace = storeCapacity.max - storeCapacity.current;
+			const isContainer = selectedItem.cardContainer !== null;
 
-			if (spaceChange > availableSpace) {
-				setError(
-					`Not enough capacity. Required additional: ${spaceChange}, Available: ${availableSpace}`
-				);
-				return;
+			// For non-containers, calculate capacity change
+			if (!isContainer) {
+				const oldSpace =
+					selectedItem.productId?.unitSize * selectedItem.quantity;
+				const newSpace = selectedItem.productId?.unitSize * updateForm.quantity;
+				const spaceChange = newSpace - oldSpace;
+				const availableSpace = storeCapacity.max - storeCapacity.current;
+
+				if (spaceChange > availableSpace) {
+					setError(
+						`Not enough capacity. Required additional: ${spaceChange}, Available: ${availableSpace}`
+					);
+					return;
+				}
 			}
 
-			await inventoryAPI.updateInventory(selectedItem._id, {
-				quantity: parseInt(updateForm.quantity),
+			// Build update payload based on item type
+			const updatePayload = {
 				location: updateForm.location,
-				minStockLevel: parseInt(updateForm.minStockLevel),
 				notes: updateForm.notes || undefined,
-			});
+			};
 
-			setSuccess("Inventory updated successfully");
+			// Only include quantity and minStockLevel for non-containers
+			if (!isContainer) {
+				updatePayload.quantity = parseInt(updateForm.quantity);
+				updatePayload.minStockLevel = parseInt(updateForm.minStockLevel);
+			}
+
+			await inventoryAPI.updateInventory(selectedItem._id, updatePayload);
+
+			setSuccess(
+				isContainer
+					? "Container updated successfully"
+					: "Inventory updated successfully"
+			);
 			setShowUpdateModal(false);
 			setSelectedItem(null);
 			await loadInventory();
@@ -548,11 +564,6 @@ function InventoryManagement({ user }) {
 									value={searchTerm}
 									onChange={(e) => setSearchTerm(e.target.value)}
 								/>
-								{searchTerm.length > 0 && searchTerm.length < 2 && (
-									<Form.Text className="text-muted">
-										Enter at least 2 characters to search
-									</Form.Text>
-								)}
 							</Form.Group>
 						</Col>
 					</Row>
@@ -610,46 +621,121 @@ function InventoryManagement({ user }) {
 											item.quantity < item.minStockLevel &&
 											item.minStockLevel > 0;
 
+										// For containers, return container row + nested card rows
+										if (isContainer) {
+											const cards = item.cardContainer?.cardInventory || [];
+											return (
+												<>
+													{/* Container Header Row */}
+													<tr key={item._id} className="table-secondary">
+														{isPartner && selectedStore === "all" && (
+															<td>{item.storeId?.name || "N/A"}</td>
+														)}
+														<td>
+															<strong>
+																📦 {item.cardContainer.containerName}
+															</strong>
+															<br />
+															<small className="text-muted">
+																{item.cardContainer.containerType
+																	.replace("-", " ")
+																	.replace(/\b\w/g, (l) =>
+																		l.toUpperCase()
+																	)}{" "}
+																• {item.totalCards} cards •{" "}
+																{item.uniqueCardTypes} types
+															</small>
+														</td>
+														<td>
+															<Badge bg="secondary">Container</Badge>
+														</td>
+														<td>Card Container</td>
+														<td>
+															<Badge
+																bg={
+																	item.location === "floor"
+																		? "success"
+																		: "warning"
+																}
+															>
+																{item.location === "floor" ? "Floor" : "Back"}
+															</Badge>
+														</td>
+														<td colSpan="2" className="text-muted">
+															<small>Contains {cards.length} card types</small>
+														</td>
+														<td>
+															{item.isActive ? (
+																<Badge bg="success">Active</Badge>
+															) : (
+																<Badge bg="secondary">Inactive</Badge>
+															)}
+														</td>
+														<td>
+															<ButtonGroup size="sm">
+																<Button
+																	variant="outline-primary"
+																	onClick={() => handleOpenUpdateModal(item)}
+																>
+																	Edit
+																</Button>
+																<Button
+																	variant="outline-danger"
+																	onClick={() => handleOpenDeleteModal(item)}
+																>
+																	Delete
+																</Button>
+															</ButtonGroup>
+														</td>
+													</tr>
+													{/* Nested Card Rows */}
+													{cards.map((card, idx) => (
+														<tr
+															key={`${item._id}-card-${idx}`}
+															className="table-light"
+														>
+															{isPartner && selectedStore === "all" && (
+																<td></td>
+															)}
+															<td className="ps-5">
+																<small>
+																	↳ {card.productId?.name || "Unknown Card"}
+																</small>
+															</td>
+															<td>
+																<small>{card.productId?.sku || "N/A"}</small>
+															</td>
+															<td>
+																<small>Single Card</small>
+															</td>
+															<td></td>
+															<td>
+																<small>{card.quantity}</small>
+															</td>
+															<td></td>
+															<td></td>
+															<td></td>
+														</tr>
+													))}
+												</>
+											);
+										}
+
+										// Regular product row
 										return (
 											<tr key={item._id}>
 												{isPartner && selectedStore === "all" && (
 													<td>{item.storeId?.name || "N/A"}</td>
 												)}
 												<td>
-													{isContainer ? (
-														<>
-															<strong>
-																{item.cardContainer.containerName}
-															</strong>
-															<br />
-															<small className="text-muted">
-																{item.cardContainer.containerType} •{" "}
-																{item.totalCards} cards • {item.uniqueCardTypes}{" "}
-																types
-															</small>
-														</>
-													) : (
-														<>
-															<strong>{item.productId?.name || "N/A"}</strong>
-															<br />
-															<small className="text-muted">
-																{item.productId?.brand || "N/A"}
-															</small>
-														</>
-													)}
+													<strong>{item.productId?.name || "N/A"}</strong>
+													<br />
+													<small className="text-muted">
+														{item.productId?.brand || "N/A"}
+													</small>
 												</td>
-												<td>
-													{isContainer ? (
-														<Badge bg="secondary">Container</Badge>
-													) : (
-														item.productId?.sku || "N/A"
-													)}
-												</td>
-												<td>
-													{isContainer
-														? "Card Container"
-														: item.productId?.productType || "N/A"}
-												</td>
+												<td>{item.productId?.sku || "N/A"}</td>
+												<td>{item.productId?.productType || "N/A"}</td>
 												<td>
 													<Badge
 														bg={
@@ -660,26 +746,14 @@ function InventoryManagement({ user }) {
 													</Badge>
 												</td>
 												<td>
-													{isContainer ? (
-														<span className="text-muted">—</span>
-													) : (
-														<>
-															{item.quantity}
-															{isLowStock && (
-																<Badge bg="danger" className="ms-2">
-																	Low
-																</Badge>
-															)}
-														</>
+													{item.quantity}
+													{isLowStock && (
+														<Badge bg="danger" className="ms-2">
+															Low
+														</Badge>
 													)}
 												</td>
-												<td>
-													{isContainer ? (
-														<span className="text-muted">—</span>
-													) : (
-														item.minStockLevel
-													)}
-												</td>
+												<td>{item.minStockLevel}</td>
 												<td>
 													{item.isActive ? (
 														<Badge bg="success">Active</Badge>
@@ -692,7 +766,6 @@ function InventoryManagement({ user }) {
 														<Button
 															variant="outline-primary"
 															onClick={() => handleOpenUpdateModal(item)}
-															disabled={isContainer}
 														>
 															Edit
 														</Button>

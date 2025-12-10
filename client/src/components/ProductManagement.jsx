@@ -127,7 +127,11 @@ function ProductManagement({ user }) {
 
 	// Handle delete product (soft delete - deactivate)
 	const handleDelete = async (productId) => {
-		if (!window.confirm("Are you sure you want to deactivate this product? It will no longer be available for new inventory.")) {
+		if (
+			!window.confirm(
+				"Are you sure you want to deactivate this product? It will no longer be available for new inventory."
+			)
+		) {
 			return;
 		}
 
@@ -216,11 +220,6 @@ function ProductManagement({ user }) {
 									value={searchTerm}
 									onChange={(e) => setSearchTerm(e.target.value)}
 								/>
-								{searchTerm.length > 0 && searchTerm.length < 2 && (
-									<Form.Text className="text-muted">
-										Enter at least 2 characters to search
-									</Form.Text>
-								)}
 							</Form.Group>
 						</Col>
 						<Col md={2}>
@@ -308,14 +307,14 @@ function ProductManagement({ user }) {
 													)}
 												</td>
 												<td>
-												<Button
-													variant="outline-warning"
-													size="sm"
-													onClick={() => handleDelete(product._id)}
-													disabled={!product.isActive}
-												>
-													Deactivate
-												</Button>
+													<Button
+														variant="outline-warning"
+														size="sm"
+														onClick={() => handleDelete(product._id)}
+														disabled={!product.isActive}
+													>
+														Deactivate
+													</Button>
 												</td>
 											</tr>
 

@@ -17,6 +17,10 @@ exports.findAll = async (filters = {}) => {
 	return await Inventory.find({ ...filters, isActive: true })
 		.populate("storeId", "name location fullAddress")
 		.populate("productId", "name sku productType brand")
+		.populate(
+			"cardContainer.cardInventory.productId",
+			"name sku productType brand cardDetails"
+		)
 		.sort({ storeId: 1, location: 1, productId: 1 });
 };
 
@@ -38,6 +42,10 @@ exports.findByStore = async (storeId, filters = {}) => {
 	})
 		.populate("storeId", "name location fullAddress")
 		.populate("productId", "name sku productType brand")
+		.populate(
+			"cardContainer.cardInventory.productId",
+			"name sku productType brand cardDetails"
+		)
 		.sort({ location: 1, productId: 1 });
 };
 
@@ -138,7 +146,11 @@ exports.softDelete = async (id) => {
 exports.findByIdPopulated = async (id) => {
 	return await Inventory.findById(id)
 		.populate("storeId", "name location fullAddress")
-		.populate("productId", "name sku productType brand");
+		.populate("productId", "name sku productType brand")
+		.populate(
+			"cardContainer.cardInventory.productId",
+			"name sku productType brand cardDetails"
+		);
 };
 
 /**

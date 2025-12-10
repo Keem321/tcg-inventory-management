@@ -8,10 +8,19 @@ const storeRepo = require("../repositories/store.repository");
 
 /**
  * Get all stores
+ * @param {Object} options - Query options
+ * @param {Boolean} options.includeInactive - Include inactive stores (default: false)
  * @returns {Array} Array of stores
  */
-exports.getAllStores = async () => {
-	return await storeRepo.findAll();
+exports.getAllStores = async (options = {}) => {
+	const { includeInactive = false } = options;
+
+	if (includeInactive) {
+		return await storeRepo.findAll();
+	}
+
+	// By default, only return active stores
+	return await storeRepo.findAll({ isActive: true });
 };
 
 /**
