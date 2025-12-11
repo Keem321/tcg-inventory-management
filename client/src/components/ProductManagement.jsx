@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
 	Container,
 	Row,
@@ -17,6 +17,24 @@ import CreateProductModal from "./modals/CreateProductModal";
 import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "../constants/enums";
 import { useDebounce } from "../hooks";
 
+// Product type theming with icons and colors
+const PRODUCT_TYPE_THEME = {
+	[PRODUCT_TYPES.SINGLE_CARD]: { icon: "🃏", color: "#10b981", bg: "#d1fae5" },
+	[PRODUCT_TYPES.BOOSTER_PACK]: { icon: "🎴", color: "#3b82f6", bg: "#dbeafe" },
+	[PRODUCT_TYPES.COLLECTOR_BOOSTER]: {
+		icon: "⭐",
+		color: "#8b5cf6",
+		bg: "#f3e8ff",
+	},
+	[PRODUCT_TYPES.DECK]: { icon: "💼", color: "#f59e0b", bg: "#fef3c7" },
+	[PRODUCT_TYPES.DECK_BOX]: { icon: "📦", color: "#ef4444", bg: "#fee2e2" },
+	[PRODUCT_TYPES.DICE]: { icon: "🎲", color: "#06b6d4", bg: "#cffafe" },
+	[PRODUCT_TYPES.SLEEVES]: { icon: "🛡️", color: "#6366f1", bg: "#e0e7ff" },
+	[PRODUCT_TYPES.PLAYMAT]: { icon: "🎨", color: "#ec4899", bg: "#fce7f3" },
+	[PRODUCT_TYPES.BINDER]: { icon: "📚", color: "#14b8a6", bg: "#ccfbf1" },
+	[PRODUCT_TYPES.OTHER]: { icon: "📋", color: "#6b7280", bg: "#f3f4f6" },
+};
+
 /**
  * Product Management Component (Partner Only!)
  * Displays all products with expandable details showing inventory across stores
@@ -33,6 +51,10 @@ function ProductManagement({ user }) {
 
 	// Modal state
 	const [showCreateModal, setShowCreateModal] = useState(false);
+
+	// Sorting state
+	const [sortColumn, setSortColumn] = useState("productType");
+	const [sortDirection, setSortDirection] = useState("asc");
 
 	// Filters
 	const [productTypeFilter, setProductTypeFilter] = useState("");
@@ -125,6 +147,65 @@ function ProductManagement({ user }) {
 		return PRODUCT_TYPE_LABELS[type] || type;
 	};
 
+	// Sort products
+	const sortedProducts = [...products].sort((a, b) => {
+		let aVal, bVal;
+
+		switch (sortColumn) {
+			case "name":
+				aVal = a.name.toLowerCase();
+				bVal = b.name.toLowerCase();
+				break;
+			case "sku":
+				aVal = a.sku.toLowerCase();
+				bVal = b.sku.toLowerCase();
+				break;
+			case "productType":
+				aVal = a.productType.toLowerCase();
+				bVal = b.productType.toLowerCase();
+				break;
+			case "brand":
+				aVal = a.brand.toLowerCase();
+				bVal = b.brand.toLowerCase();
+				break;
+			case "basePrice":
+				aVal = a.basePrice;
+				bVal = b.basePrice;
+				break;
+			default:
+				return 0;
+		}
+
+		if (sortDirection === "asc") {
+			return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+		} else {
+			return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+		}
+	});
+
+	// Handle column sort
+	const handleSort = (column) => {
+		if (sortColumn === column) {
+			// Toggle direction
+			setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+		} else {
+			// New column, default to ascending
+			setSortColumn(column);
+			setSortDirection("asc");
+		}
+	};
+
+	// Get theme for product type
+	const getProductTheme = (type) => {
+		return (
+			PRODUCT_TYPE_THEME[type] || {
+				icon: "📋",
+				color: "#6b7280",
+				bg: "#f3f4f6",
+			}
+		);
+	};
+
 	// Handle delete product (soft delete - deactivate)
 	const handleDelete = async (productId) => {
 		if (
@@ -175,9 +256,6 @@ function ProductManagement({ user }) {
 					<h2>Product Management</h2>
 					<p className="text-muted">
 						Manage product catalog and view inventory across all stores
-					</p>
-					<p className="text-muted">
-						Note: add dataTable like ordering functionality?
 					</p>
 				</Col>
 				<Col xs="auto">
@@ -268,106 +346,280 @@ function ProductManagement({ user }) {
 							<p className="text-muted mt-2">Loading products...</p>
 						</div>
 					) : (
-						<Table responsive hover>
+						<Table
+							responsive
+							hover
+							style={{ borderCollapse: "separate", borderSpacing: "0 8px" }}
+						>
 							<thead>
 								<tr>
-									<th style={{ width: "50px" }}></th>
-									<th>SKU</th>
-									<th>Name</th>
-									<th>Type</th>
-									<th>Brand</th>
-									<th>Price</th>
-									<th>Status</th>
-									<th>Actions</th>
+									<th
+										style={{
+											width: "40px",
+											cursor: "default",
+											borderBottom: "2px solid #dee2e6",
+										}}
+									></th>
+									<th
+										style={{
+											cursor: "pointer",
+											borderBottom: "2px solid #dee2e6",
+										}}
+										onClick={() => handleSort("productType")}
+									>
+										Type{" "}
+										{sortColumn === "productType" &&
+											(sortDirection === "asc" ? "↑" : "↓")}
+									</th>
+									<th
+										style={{
+											cursor: "pointer",
+											borderBottom: "2px solid #dee2e6",
+										}}
+										onClick={() => handleSort("name")}
+									>
+										Product Details{" "}
+										{sortColumn === "name" &&
+											(sortDirection === "asc" ? "↑" : "↓")}
+									</th>
+									<th
+										style={{
+											cursor: "pointer",
+											borderBottom: "2px solid #dee2e6",
+										}}
+										onClick={() => handleSort("brand")}
+									>
+										Brand{" "}
+										{sortColumn === "brand" &&
+											(sortDirection === "asc" ? "↑" : "↓")}
+									</th>
+									<th
+										style={{
+											cursor: "pointer",
+											borderBottom: "2px solid #dee2e6",
+										}}
+										onClick={() => handleSort("basePrice")}
+									>
+										Price{" "}
+										{sortColumn === "basePrice" &&
+											(sortDirection === "asc" ? "↑" : "↓")}
+									</th>
+									<th style={{ borderBottom: "2px solid #dee2e6" }}>Status</th>
+									<th style={{ borderBottom: "2px solid #dee2e6" }}>Actions</th>
 								</tr>
 							</thead>
 							<tbody>
-								{products.length === 0 ? (
+								{sortedProducts.length === 0 ? (
 									<tr>
-										<td colSpan="8" className="text-center text-muted">
+										<td
+											colSpan="7"
+											className="text-center text-muted"
+											style={{ padding: "2rem" }}
+										>
 											No products found
 										</td>
 									</tr>
 								) : (
-									products.map((product) => (
-										<>
-											{/* Main Product Row */}
-											<tr key={product._id}>
-												<td>
-													<Button
-														variant="link"
-														size="sm"
-														onClick={() => toggleProductExpansion(product._id)}
+									sortedProducts.map((product) => {
+										const theme = getProductTheme(product.productType);
+										return (
+											<React.Fragment key={product._id}>
+												{/* Main Product Row */}
+												<tr
+													style={{
+														borderLeft: `4px solid ${theme.color}`,
+													}}
+												>
+													<td
+														style={{
+															verticalAlign: "middle",
+															padding: "1rem 0.5rem",
+															backgroundColor: theme.bg,
+														}}
 													>
-														{expandedProducts.has(product._id) ? "▼" : "▶"}
-													</Button>
-												</td>
-												<td>
-													<code>{product.sku}</code>
-												</td>
-												<td>
-													<strong>{product.name}</strong>
-													{product.cardDetails && (
-														<div className="small text-muted">
-															{product.cardDetails.set} #
-															{product.cardDetails.cardNumber}
-														</div>
-													)}
-												</td>
-												<td>{formatProductType(product.productType)}</td>
-												<td>{product.brand}</td>
-												<td>${product.basePrice.toFixed(2)}</td>
-												<td>
-													{product.isActive ? (
-														<Badge bg="success">Active</Badge>
-													) : (
-														<Badge bg="secondary">Inactive</Badge>
-													)}
-												</td>
-												<td>
-													{product.isActive ? (
 														<Button
-															variant="outline-warning"
-															size="sm"
-															onClick={() => handleDelete(product._id)}
+															variant="link"
+															size=""
+															style={{
+																textDecoration: "none",
+																padding: "0.25rem",
+															}}
+															onClick={() =>
+																toggleProductExpansion(product._id)
+															}
 														>
-															Deactivate
+															{expandedProducts.has(product._id) ? "▼" : "⯈"}
 														</Button>
-													) : (
-														<Button
-															variant="outline-success"
-															size="sm"
-															onClick={() => handleActivate(product._id)}
-														>
-															Activate
-														</Button>
-													)}
-												</td>
-											</tr>
-
-											{/* Expanded Details Row */}
-											<tr>
-												<td colSpan="8" style={{ padding: 0 }}>
-													<Collapse in={expandedProducts.has(product._id)}>
-														<div className="p-3 bg-light">
-															{loadingDetails.has(product._id) ? (
-																<div className="text-center">
-																	<Spinner animation="border" size="sm" />
+													</td>
+													<td
+														style={{
+															verticalAlign: "middle",
+															padding: "1rem 0.75rem",
+															backgroundColor: theme.bg,
+														}}
+													>
+														<div className="d-flex align-items-center gap-2">
+															<span style={{ fontSize: "1.5rem" }}>
+																{theme.icon}
+															</span>
+															<div>
+																<div
+																	style={{
+																		fontWeight: "600",
+																		color: theme.color,
+																	}}
+																>
+																	{formatProductType(product.productType)}
 																</div>
-															) : productDetails[product._id] ? (
-																<ProductDetails
-																	product={productDetails[product._id].product}
-																	inventory={
-																		productDetails[product._id].inventory
-																	}
-																/>
-															) : null}
+															</div>
 														</div>
-													</Collapse>
-												</td>
-											</tr>
-										</>
-									))
+													</td>
+													<td
+														style={{
+															verticalAlign: "middle",
+															padding: "1rem 0.75rem",
+															backgroundColor: theme.bg,
+														}}
+													>
+														<div>
+															<div
+																style={{
+																	fontWeight: "600",
+																	fontSize: "1.05rem",
+																	marginBottom: "0.25rem",
+																}}
+															>
+																{product.name}
+															</div>
+															<code className="bg-white px-2 py-1 rounded small">
+																{product.sku}
+															</code>
+															{product.cardDetails && (
+																<div className="small text-muted mt-1">
+																	{product.cardDetails.set} • #
+																	{product.cardDetails.cardNumber} •{" "}
+																	{product.cardDetails.rarity}
+																	{product.cardDetails.condition &&
+																		` • ${product.cardDetails.condition}`}
+																</div>
+															)}
+															{product.description && (
+																<div className="small text-muted mt-1">
+																	{product.description}
+																</div>
+															)}
+															{product.unitSize > 0 && (
+																<div className="small text-muted mt-1">
+																	Unit Size: {product.unitSize}
+																	{product.bulkQuantity &&
+																		` • Bulk Qty: ${product.bulkQuantity}`}
+																</div>
+															)}
+														</div>
+													</td>
+													<td
+														style={{
+															verticalAlign: "middle",
+															padding: "1rem 0.75rem",
+															backgroundColor: theme.bg,
+														}}
+													>
+														<div style={{ fontWeight: "500" }}>
+															{product.brand}
+														</div>
+													</td>
+													<td
+														style={{
+															verticalAlign: "middle",
+															padding: "1rem 0.75rem",
+															backgroundColor: theme.bg,
+														}}
+													>
+														<div
+															style={{
+																fontSize: "1.25rem",
+																fontWeight: "600",
+																color: "#0d6efd",
+															}}
+														>
+															${product.basePrice.toFixed(2)}
+														</div>
+													</td>
+													<td
+														style={{
+															verticalAlign: "middle",
+															padding: "1rem 0.75rem",
+															backgroundColor: theme.bg,
+														}}
+													>
+														{product.isActive ? (
+															<Badge bg="success">Active</Badge>
+														) : (
+															<Badge bg="secondary">Inactive</Badge>
+														)}
+													</td>
+													<td
+														style={{
+															verticalAlign: "middle",
+															padding: "1rem 0.75rem",
+															backgroundColor: theme.bg,
+														}}
+													>
+														{product.isActive ? (
+															<Button
+																variant="warning"
+																size="sm"
+																onClick={() => handleDelete(product._id)}
+															>
+																Deactivate
+															</Button>
+														) : (
+															<Button
+																variant="success"
+																size="sm"
+																onClick={() => handleActivate(product._id)}
+															>
+																Activate
+															</Button>
+														)}
+													</td>
+												</tr>
+
+												{/* Expanded Inventory Details Row */}
+												<tr style={{ backgroundColor: theme.bg }}>
+													<td
+														colSpan="7"
+														style={{
+															padding: 0,
+															borderLeft: `4px solid ${theme.color}`,
+															backgroundColor: theme.bg,
+														}}
+													>
+														<Collapse in={expandedProducts.has(product._id)}>
+															<div
+																className="p-3"
+																style={{
+																	borderTop: `1px solid ${theme.color}`,
+																}}
+															>
+																{loadingDetails.has(product._id) ? (
+																	<div className="text-center">
+																		<Spinner animation="border" size="sm" />
+																	</div>
+																) : productDetails[product._id] ? (
+																	<ProductDetails
+																		inventory={
+																			productDetails[product._id].inventory
+																		}
+																	/>
+																) : null}
+															</div>
+														</Collapse>
+													</td>
+												</tr>
+											</React.Fragment>
+										);
+									})
 								)}
 							</tbody>
 						</Table>
@@ -387,102 +639,47 @@ function ProductManagement({ user }) {
 
 /**
  * Product Details Component
- * Shows detailed information and inventory breakdown
+ * Shows inventory breakdown across stores
  */
-function ProductDetails({ product, inventory }) {
+function ProductDetails({ inventory }) {
 	return (
-		<Row>
-			<Col md={6}>
-				<h5>Product Details</h5>
-				<dl className="row">
-					<dt className="col-sm-4">SKU:</dt>
-					<dd className="col-sm-8">
-						<code>{product.sku}</code>
-					</dd>
+		<div>
+			<div className="d-flex justify-content-between align-items-center mb-3">
+				<h6 className="mb-0">Inventory Across System</h6>
+				<Badge bg="primary" pill style={{ fontSize: "0.9rem" }}>
+					Total: {inventory.totalQuantity}
+				</Badge>
+			</div>
 
-					<dt className="col-sm-4">Type:</dt>
-					<dd className="col-sm-8">{product.productType}</dd>
-
-					<dt className="col-sm-4">Brand:</dt>
-					<dd className="col-sm-8">{product.brand}</dd>
-
-					<dt className="col-sm-4">Unit Size:</dt>
-					<dd className="col-sm-8">
-						{product.unitSize === 0 ? "N/A (Card)" : product.unitSize}
-					</dd>
-
-					{product.bulkQuantity && (
-						<>
-							<dt className="col-sm-4">Bulk Qty:</dt>
-							<dd className="col-sm-8">{product.bulkQuantity}</dd>
-						</>
-					)}
-
-					{product.description && (
-						<>
-							<dt className="col-sm-4">Description:</dt>
-							<dd className="col-sm-8">{product.description}</dd>
-						</>
-					)}
-
-					{product.cardDetails && (
-						<>
-							<dt className="col-sm-4">Set:</dt>
-							<dd className="col-sm-8">{product.cardDetails.set}</dd>
-
-							<dt className="col-sm-4">Card #:</dt>
-							<dd className="col-sm-8">{product.cardDetails.cardNumber}</dd>
-
-							<dt className="col-sm-4">Rarity:</dt>
-							<dd className="col-sm-8">{product.cardDetails.rarity}</dd>
-
-							<dt className="col-sm-4">Condition:</dt>
-							<dd className="col-sm-8">{product.cardDetails.condition}</dd>
-
-							<dt className="col-sm-4">Finish:</dt>
-							<dd className="col-sm-8">{product.cardDetails.finish}</dd>
-						</>
-					)}
-				</dl>
-			</Col>
-
-			<Col md={6}>
-				<h5>Inventory Across System</h5>
-				<div className="mb-3">
-					<strong>Total Quantity:</strong>{" "}
-					<Badge bg="primary" className="ms-2">
-						{inventory.totalQuantity}
-					</Badge>
-				</div>
-
-				{inventory.stores.length === 0 ? (
-					<p className="text-muted">No inventory in any store</p>
-				) : (
-					<Table size="sm" bordered>
-						<thead>
-							<tr>
-								<th>Store</th>
-								<th>Floor</th>
-								<th>Back</th>
-								<th>Total</th>
+			{inventory.stores.length === 0 ? (
+				<p className="text-muted">No inventory in any store</p>
+			) : (
+				<Table size="sm" hover>
+					<thead>
+						<tr>
+							<th>Store</th>
+							<th className="text-end">Floor</th>
+							<th className="text-end">Back</th>
+							<th className="text-end">Total</th>
+						</tr>
+					</thead>
+					<tbody>
+						{inventory.stores.map((store) => (
+							<tr key={store.storeId}>
+								<td>
+									<strong>{store.storeName}</strong>
+								</td>
+								<td className="text-end">{store.floor}</td>
+								<td className="text-end">{store.back}</td>
+								<td className="text-end">
+									<Badge bg="info">{store.total}</Badge>
+								</td>
 							</tr>
-						</thead>
-						<tbody>
-							{inventory.stores.map((store) => (
-								<tr key={store.storeId}>
-									<td>{store.storeName}</td>
-									<td>{store.floor}</td>
-									<td>{store.back}</td>
-									<td>
-										<strong>{store.total}</strong>
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</Table>
-				)}
-			</Col>
-		</Row>
+						))}
+					</tbody>
+				</Table>
+			)}
+		</div>
 	);
 }
 
