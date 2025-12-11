@@ -143,6 +143,24 @@ function ProductManagement({ user }) {
 		}
 	};
 
+	// Handle activate product (reactivate)
+	const handleActivate = async (productId) => {
+		if (
+			!window.confirm(
+				"Are you sure you want to reactivate this product? It will be available for new inventory again."
+			)
+		) {
+			return;
+		}
+
+		try {
+			await productAPI.updateProduct(productId, { isActive: true });
+			loadProducts();
+		} catch (err) {
+			setError(err.response?.data?.message || err.message);
+		}
+	};
+
 	// Handle create product
 	const handleCreateProduct = async (productData) => {
 		await productAPI.createProduct(productData);
@@ -307,14 +325,23 @@ function ProductManagement({ user }) {
 													)}
 												</td>
 												<td>
-													<Button
-														variant="outline-warning"
-														size="sm"
-														onClick={() => handleDelete(product._id)}
-														disabled={!product.isActive}
-													>
-														Deactivate
-													</Button>
+													{product.isActive ? (
+														<Button
+															variant="outline-warning"
+															size="sm"
+															onClick={() => handleDelete(product._id)}
+														>
+															Deactivate
+														</Button>
+													) : (
+														<Button
+															variant="outline-success"
+															size="sm"
+															onClick={() => handleActivate(product._id)}
+														>
+															Activate
+														</Button>
+													)}
 												</td>
 											</tr>
 
