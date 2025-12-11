@@ -4,9 +4,22 @@
  */
 
 const transferRequestService = require("../services/transferRequest.service");
+const { sendErrorResponse } = require("../utils/errorHandler");
 
 /**
  * Create new transfer request
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Transfer request data
+ * @param {string} req.body.fromStoreId - Source store ID
+ * @param {string} req.body.toStoreId - Destination store ID
+ * @param {Array} req.body.items - Array of items to transfer
+ * @param {string} [req.body.notes] - Optional notes
+ * @param {Object} req.user - Current authenticated user
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} JSON response with created transfer request
+ * @throws {400} If validation fails or insufficient inventory
+ * @throws {403} If user lacks permission
  */
 exports.createTransferRequest = async (req, res) => {
 	try {
@@ -16,17 +29,21 @@ exports.createTransferRequest = async (req, res) => {
 		);
 		res.status(201).json({ success: true, transferRequest });
 	} catch (error) {
-		console.error("Create transfer request error:", error);
-		const statusCode = error.statusCode || 500;
-		res.status(statusCode).json({
-			success: false,
-			message: error.message || "Error creating transfer request",
-		});
+		sendErrorResponse(res, error, "Error creating transfer request", "[TransferRequestController] Create transfer request");
 	}
 };
 
 /**
- * Get all transfer requests
+ * Get all transfer requests filtered by user permissions
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.query - Query parameters
+ * @param {string} [req.query.status] - Filter by status (open, requested, sent, complete, closed)
+ * @param {string} [req.query.storeId] - Filter by store ID (partners only)
+ * @param {Object} req.user - Current authenticated user
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} JSON response with transfer requests array
+ * @throws {403} If user lacks permission
  */
 exports.getAllTransferRequests = async (req, res) => {
 	try {
@@ -34,17 +51,21 @@ exports.getAllTransferRequests = async (req, res) => {
 			await transferRequestService.getAllTransferRequests(req.user, req.query);
 		res.json({ success: true, transferRequests });
 	} catch (error) {
-		console.error("Get transfer requests error:", error);
-		const statusCode = error.statusCode || 500;
-		res.status(statusCode).json({
-			success: false,
-			message: error.message || "Error fetching transfer requests",
-		});
+		sendErrorResponse(res, error, "Error fetching transfer requests", "[TransferRequestController] Get transfer requests");
 	}
 };
 
 /**
- * Get transfer request by ID
+ * Get transfer request by ID with full details
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Transfer request ID
+ * @param {Object} req.user - Current authenticated user
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} JSON response with transfer request details
+ * @throws {404} If transfer request not found
+ * @throws {403} If user lacks permission to view this request
  */
 exports.getTransferRequestById = async (req, res) => {
 	try {
@@ -54,17 +75,25 @@ exports.getTransferRequestById = async (req, res) => {
 		);
 		res.json({ success: true, transferRequest });
 	} catch (error) {
-		console.error("Get transfer request error:", error);
-		const statusCode = error.statusCode || 500;
-		res.status(statusCode).json({
-			success: false,
-			message: error.message || "Error fetching transfer request",
-		});
+		sendErrorResponse(res, error, "Error fetching transfer request", "[TransferRequestController] Get transfer request");
 	}
 };
 
 /**
- * Update transfer request status
+ * Update transfer request status with state transitions
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Transfer request ID
+ * @param {Object} req.body - Update data
+ * @param {string} req.body.status - New status (requested, sent, complete, closed)
+ * @param {string} [req.body.closeReason] - Reason if closing
+ * @param {Object} req.user - Current authenticated user
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} JSON response with updated transfer request
+ * @throws {400} If invalid status transition
+ * @throws {403} If user lacks permission for this transition
+ * @throws {404} If transfer request not found
  */
 exports.updateTransferStatus = async (req, res) => {
 	try {
@@ -77,17 +106,21 @@ exports.updateTransferStatus = async (req, res) => {
 		);
 		res.json({ success: true, transferRequest });
 	} catch (error) {
-		console.error("Update transfer status error:", error);
-		const statusCode = error.statusCode || 500;
-		res.status(statusCode).json({
-			success: false,
-			message: error.message || "Error updating transfer status",
-		});
+		sendErrorResponse(res, error, "Error updating transfer status", "[TransferRequestController] Update transfer status");
 	}
 };
 
 /**
- * Delete transfer request (soft delete)
+ * Delete transfer request (soft delete - sets isActive to false)
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Transfer request ID
+ * @param {Object} req.user - Current authenticated user
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} JSON response with deleted transfer request
+ * @throws {404} If transfer request not found
+ * @throws {403} If user lacks permission (partners only)
  */
 exports.deleteTransferRequest = async (req, res) => {
 	try {
@@ -97,11 +130,6 @@ exports.deleteTransferRequest = async (req, res) => {
 		);
 		res.json({ success: true, transferRequest });
 	} catch (error) {
-		console.error("Delete transfer request error:", error);
-		const statusCode = error.statusCode || 500;
-		res.status(statusCode).json({
-			success: false,
-			message: error.message || "Error deleting transfer request",
-		});
+		sendErrorResponse(res, error, "Error deleting transfer request", "[TransferRequestController] Delete transfer request");
 	}
 };

@@ -9,9 +9,16 @@ const { LOCATIONS } = require("../constants/enums");
 
 /**
  * Check if inventory already exists for a product at a store
- * @param {Object} checkData - { storeId, productId, location }
- * @returns {Object} - { exactMatch, differentLocation }
- * @throws {Error} If validation fails
+ * Used before creating new inventory to prevent duplicates and suggest merge
+ * @async
+ * @param {Object} checkData - Check parameters
+ * @param {string} checkData.storeId - Store ID to check
+ * @param {string} checkData.productId - Product ID to check
+ * @param {string} checkData.location - Location ('floor' or 'back')
+ * @returns {Promise<Object>} Object with exactMatch and differentLocation properties
+ * @returns {Object|null} return.exactMatch - Exact match (same location) if found
+ * @returns {Object|null} return.differentLocation - Match at different location if found
+ * @throws {400} If required fields missing or invalid IDs
  */
 exports.checkDuplicate = async (checkData) => {
 	const { storeId, productId, location } = checkData;
@@ -69,8 +76,10 @@ exports.checkDuplicate = async (checkData) => {
 
 /**
  * Get all inventory across all stores
- * @param {Object} filters - { location }
- * @returns {Array} Array of inventory items
+ * @async
+ * @param {Object} [filters={}] - Filter options
+ * @param {string} [filters.location] - Filter by location ('floor' or 'back')
+ * @returns {Promise<Array>} Array of inventory items with populated product and store data
  */
 exports.getAllInventory = async (filters = {}) => {
 	const { location } = filters;
@@ -86,10 +95,12 @@ exports.getAllInventory = async (filters = {}) => {
 
 /**
  * Get inventory for a specific store
- * @param {String} storeId - Store ID
- * @param {Object} filters - { location }
- * @returns {Array} Array of inventory items
- * @throws {Error} If invalid store ID
+ * @async
+ * @param {string} storeId - Store ID
+ * @param {Object} [filters={}] - Filter options
+ * @param {string} [filters.location] - Filter by location ('floor' or 'back')
+ * @returns {Promise<Array>} Array of inventory items with populated product data
+ * @throws {400} If store ID format is invalid
  */
 exports.getInventoryByStore = async (storeId, filters = {}) => {
 	const { location } = filters;
@@ -111,10 +122,22 @@ exports.getInventoryByStore = async (storeId, filters = {}) => {
 };
 
 /**
- * Create new inventory item
- * @param {Object} inventoryData - { storeId, productId, quantity, location, minStockLevel, notes }
- * @returns {Object} Created/updated inventory item with merge status
- * @throws {Error} If validation fails or capacity exceeded
+ * Create new inventory item or merge with existing
+ * Supports both direct inventory and card containers
+ * Automatically merges with existing inventory at same location
+ * @async
+ * @param {Object} inventoryData - Inventory data
+ * @param {string} inventoryData.storeId - Store ID
+ * @param {string} inventoryData.productId - Product ID (or container details)
+ * @param {number} inventoryData.quantity - Quantity
+ * @param {string} inventoryData.location - Location ('floor' or 'back')
+ * @param {number} [inventoryData.minStockLevel] - Minimum stock level alert threshold
+ * @param {string} [inventoryData.notes] - Additional notes
+ * @param {Object} [inventoryData.cardContainer] - Card container details (for mixed inventory)
+ * @returns {Promise<Object>} Result object with inventory, merged flag, and merge details
+ * @throws {400} If required fields missing or invalid IDs
+ * @throws {404} If store or product not found
+ * @throws {400} If store capacity exceeded
  */
 exports.createInventory = async (inventoryData) => {
 	const { storeId, productId, quantity, location, minStockLevel, notes } =
@@ -247,10 +270,18 @@ exports.createInventory = async (inventoryData) => {
 
 /**
  * Update inventory item
- * @param {String} inventoryId - Inventory ID
- * @param {Object} updateData - { quantity, location, minStockLevel, notes }
- * @returns {Object} Updated inventory item
- * @throws {Error} If validation fails or capacity exceeded
+ * Validates capacity constraints when quantity changes
+ * @async
+ * @param {string} inventoryId - Inventory ID
+ * @param {Object} updateData - Fields to update
+ * @param {number} [updateData.quantity] - New quantity
+ * @param {string} [updateData.location] - New location ('floor' or 'back')
+ * @param {number} [updateData.minStockLevel] - Minimum stock level
+ * @param {string} [updateData.notes] - Additional notes
+ * @returns {Promise<Object>} Updated inventory item with populated product data
+ * @throws {400} If inventory ID format is invalid
+ * @throws {404} If inventory not found
+ * @throws {400} If capacity exceeded when increasing quantity
  */
 exports.updateInventory = async (inventoryId, updateData) => {
 	const { quantity, location, minStockLevel, notes } = updateData;
@@ -311,9 +342,13 @@ exports.updateInventory = async (inventoryId, updateData) => {
 };
 
 /**
- * Delete inventory item (soft delete)
- * @param {String} inventoryId - Inventory ID
- * @throws {Error} If inventory not found
+ * Delete inventory item (soft delete - sets isDeleted to true)
+ * Updates store capacity after deletion
+ * @async
+ * @param {string} inventoryId - Inventory ID
+ * @returns {Promise<Object>} Deleted inventory item
+ * @throws {400} If inventory ID format is invalid
+ * @throws {404} If inventory not found
  */
 exports.deleteInventory = async (inventoryId) => {
 	// Validate ObjectId format

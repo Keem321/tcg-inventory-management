@@ -8,9 +8,10 @@ const storeRepo = require("../repositories/store.repository");
 
 /**
  * Get all stores
- * @param {Object} options - Query options
- * @param {Boolean} options.includeInactive - Include inactive stores (default: false)
- * @returns {Array} Array of stores
+ * @async
+ * @param {Object} [options={}] - Query options
+ * @param {boolean} [options.includeInactive=false] - Include inactive stores
+ * @returns {Promise<Array>} Array of store documents
  */
 exports.getAllStores = async (options = {}) => {
 	const { includeInactive = false } = options;
@@ -25,9 +26,11 @@ exports.getAllStores = async (options = {}) => {
 
 /**
  * Get store by ID
- * @param {String} storeId - Store ID
- * @returns {Object} Store document
- * @throws {Error} If store not found or invalid ID
+ * @async
+ * @param {string} storeId - Store ID
+ * @returns {Promise<Object>} Store document
+ * @throws {400} If store ID format is invalid
+ * @throws {404} If store not found
  */
 exports.getStoreById = async (storeId) => {
 	if (!mongoose.Types.ObjectId.isValid(storeId)) {
@@ -48,9 +51,18 @@ exports.getStoreById = async (storeId) => {
 
 /**
  * Create new store
- * @param {Object} storeData - { name, location, maxCapacity }
- * @returns {Object} Created store
- * @throws {Error} If validation fails
+ * @async
+ * @param {Object} storeData - Store data
+ * @param {string} storeData.name - Store name
+ * @param {Object} storeData.location - Store location
+ * @param {string} storeData.location.address - Street address
+ * @param {string} storeData.location.city - City
+ * @param {string} storeData.location.state - State
+ * @param {string} storeData.location.zipCode - ZIP code
+ * @param {number} storeData.maxCapacity - Maximum capacity in cubic units
+ * @returns {Promise<Object>} Created store document
+ * @throws {400} If required fields missing or invalid
+ * @throws {400} If maxCapacity is not greater than 0
  */
 exports.createStore = async (storeData) => {
 	const { name, location, maxCapacity } = storeData;
@@ -93,10 +105,17 @@ exports.createStore = async (storeData) => {
 
 /**
  * Update store
- * @param {String} storeId - Store ID
+ * Validates that new maxCapacity is not below current capacity
+ * @async
+ * @param {string} storeId - Store ID
  * @param {Object} updateData - Fields to update
- * @returns {Object} Updated store
- * @throws {Error} If validation fails or store not found
+ * @param {string} [updateData.name] - Store name
+ * @param {Object} [updateData.location] - Store location
+ * @param {number} [updateData.maxCapacity] - Maximum capacity
+ * @returns {Promise<Object>} Updated store document
+ * @throws {400} If store ID format is invalid
+ * @throws {404} If store not found
+ * @throws {400} If maxCapacity is below current capacity
  */
 exports.updateStore = async (storeId, updateData) => {
 	const { name, location, maxCapacity } = updateData;
@@ -146,10 +165,15 @@ exports.updateStore = async (storeId, updateData) => {
 };
 
 /**
- * Delete store (soft delete)
- * @param {String} storeId - Store ID
- * @returns {Object} Updated store document
- * @throws {Error} If store not found, has assigned users, has inventory, or invalid ID
+ * Delete store (soft delete - sets isActive to false)
+ * Prevents deletion if store has assigned users or active inventory
+ * @async
+ * @param {string} storeId - Store ID
+ * @returns {Promise<Object>} Updated store document with isActive set to false
+ * @throws {400} If store ID format is invalid
+ * @throws {404} If store not found
+ * @throws {400} If store has assigned users
+ * @throws {400} If store has active inventory
  */
 exports.deleteStore = async (storeId) => {
 	// Validate ObjectId

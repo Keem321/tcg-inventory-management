@@ -40,10 +40,6 @@ function CreateTransferRequestModal({
 	// Auto-set destination to manager's store when modal opens
 	useEffect(() => {
 		if (show && isManager && userStoreId) {
-			console.log(
-				"Setting destination store to manager's assigned store:",
-				userStoreId
-			);
 			setToStoreId(userStoreId);
 		}
 	}, [show, isManager, userStoreId]);

@@ -9,8 +9,13 @@ const { LOCATIONS } = require("../constants/enums");
 
 /**
  * Get all products with optional filtering
- * @param {Object} filters - { productType, brand, isActive, search }
- * @returns {Array} Array of products
+ * @async
+ * @param {Object} [filters={}] - Filter options
+ * @param {string} [filters.productType] - Filter by product type
+ * @param {string} [filters.brand] - Filter by brand name
+ * @param {boolean|string} [filters.isActive] - Filter by active status
+ * @param {string} [filters.search] - Search term for name/SKU
+ * @returns {Promise<Array>} Array of product documents
  */
 exports.getAllProducts = async (filters = {}) => {
 	const { productType, brand, isActive, search } = filters;
@@ -28,8 +33,9 @@ exports.getAllProducts = async (filters = {}) => {
 };
 
 /**
- * Get all unique brands
- * @returns {Array} Array of brand names sorted alphabetically
+ * Get all unique brands from active products
+ * @async
+ * @returns {Promise<Array<string>>} Array of unique brand names sorted alphabetically
  */
 exports.getAllBrands = async () => {
 	const brands = await productRepo.getAllBrands();
@@ -38,9 +44,16 @@ exports.getAllBrands = async () => {
 
 /**
  * Get product by ID with inventory details across all stores
- * @param {String} productId - Product ID
- * @returns {Object} Product with inventory breakdown
- * @throws {Error} If product not found or invalid ID
+ * Aggregates inventory from direct items and card containers
+ * @async
+ * @param {string} productId - Product ID
+ * @returns {Promise<Object>} Object containing product and inventory breakdown
+ * @returns {Object} return.product - Product document
+ * @returns {Object} return.inventory - Inventory summary
+ * @returns {number} return.inventory.totalQuantity - Total quantity across all stores
+ * @returns {Array} return.inventory.stores - Per-store inventory breakdown
+ * @throws {400} If product ID format is invalid
+ * @throws {404} If product not found
  */
 exports.getProductById = async (productId) => {
 	// Validate ObjectId format
@@ -115,9 +128,19 @@ exports.getProductById = async (productId) => {
 
 /**
  * Create new product
+ * @async
  * @param {Object} productData - Product data
- * @returns {Object} Created product
- * @throws {Error} If validation fails or SKU already exists
+ * @param {string} productData.sku - Unique product SKU
+ * @param {string} productData.productType - Product type (singleCard, boosterPack, etc.)
+ * @param {string} productData.name - Product name
+ * @param {string} productData.brand - Brand name
+ * @param {number} productData.unitSize - Unit size in cubic units
+ * @param {number} productData.basePrice - Base price
+ * @param {Object} [productData.cardDetails] - Card-specific details (required for singleCard)
+ * @param {number} [productData.bulkQuantity] - Bulk quantity threshold
+ * @returns {Promise<Object>} Created product document
+ * @throws {400} If required fields missing or validation fails
+ * @throws {400} If SKU already exists
  */
 exports.createProduct = async (productData) => {
 	const {
@@ -171,10 +194,20 @@ exports.createProduct = async (productData) => {
 
 /**
  * Update existing product
- * @param {String} productId - Product ID
+ * Note: SKU, productType, and unitSize are immutable and cannot be changed
+ * @async
+ * @param {string} productId - Product ID
  * @param {Object} updateData - Fields to update
- * @returns {Object} Updated product
- * @throws {Error} If validation fails or product not found
+ * @param {string} [updateData.name] - Product name
+ * @param {string} [updateData.description] - Product description
+ * @param {string} [updateData.brand] - Brand name
+ * @param {Object} [updateData.cardDetails] - Card-specific details
+ * @param {number} [updateData.basePrice] - Base price
+ * @param {number} [updateData.bulkQuantity] - Bulk quantity threshold
+ * @param {boolean} [updateData.isActive] - Active status
+ * @returns {Promise<Object>} Updated product document
+ * @throws {400} If product ID format is invalid
+ * @throws {404} If product not found
  */
 exports.updateProduct = async (productId, updateData) => {
 	// Validate ObjectId format
@@ -216,9 +249,13 @@ exports.updateProduct = async (productId, updateData) => {
 };
 
 /**
- * Delete product (soft delete - set isActive to false)
- * @param {String} productId - Product ID
- * @throws {Error} If product not found
+ * Delete product (soft delete - sets isActive to false)
+ * Product data is retained for historical reference
+ * @async
+ * @param {string} productId - Product ID
+ * @returns {Promise<Object>} Updated product with isActive set to false
+ * @throws {400} If product ID format is invalid
+ * @throws {404} If product not found
  */
 exports.deleteProduct = async (productId) => {
 	// Validate ObjectId format

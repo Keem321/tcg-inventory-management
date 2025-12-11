@@ -26,8 +26,7 @@ function App() {
 				setUser(response.user);
 			}
 		} catch {
-			// Not logged in
-			console.log("No active session");
+			// Not logged in - silently handle
 		} finally {
 			setLoading(false);
 		}

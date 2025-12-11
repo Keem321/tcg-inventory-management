@@ -10,10 +10,26 @@ const { USER_ROLES, LOCATIONS } = require("../constants/enums");
 
 /**
  * Create a new transfer request
- * @param {Object} requestData - { fromStoreId, toStoreId, items, notes }
+ * Validates permissions, inventory availability, and generates request number
+ * Store managers can only create requests involving their assigned store
+ * @async
+ * @param {Object} requestData - Request data
+ * @param {string} requestData.fromStoreId - Source store ID
+ * @param {string} requestData.toStoreId - Destination store ID
+ * @param {Array<Object>} requestData.items - Items to transfer
+ * @param {string} requestData.items[].inventoryId - Inventory item ID
+ * @param {number} requestData.items[].requestedQuantity - Quantity to transfer
+ * @param {string} [requestData.notes] - Additional notes
  * @param {Object} user - User creating the request
- * @returns {Object} Created transfer request
- * @throws {Error} If validation fails
+ * @param {string} user._id - User ID
+ * @param {string} user.role - User role ('partner' or 'storeManager')
+ * @param {string} [user.assignedStoreId] - Assigned store ID (for managers)
+ * @returns {Promise<Object>} Created transfer request with generated request number
+ * @throws {400} If required fields missing or invalid
+ * @throws {400} If attempting to transfer to same store
+ * @throws {403} If manager creating request not involving their store
+ * @throws {404} If inventory items not found
+ * @throws {400} If insufficient quantity available
  */
 exports.createTransferRequest = async (requestData, user) => {
 	const { fromStoreId, toStoreId, items, notes } = requestData;
@@ -126,9 +142,16 @@ exports.createTransferRequest = async (requestData, user) => {
 
 /**
  * Get all transfer requests (filtered by user permissions)
+ * Partners can see all requests (optionally filtered by store)
+ * Store managers only see requests involving their assigned store
+ * @async
  * @param {Object} user - Current user
- * @param {Object} filters - Optional filters { status, storeId }
- * @returns {Array} Array of transfer requests
+ * @param {string} user.role - User role ('partner' or 'storeManager')
+ * @param {string} [user.assignedStoreId] - Assigned store ID (for managers)
+ * @param {Object} [filters={}] - Filter options
+ * @param {string} [filters.status] - Filter by status ('open', 'approved', 'in-transit', 'completed', 'cancelled')
+ * @param {string} [filters.storeId] - Filter by store ID (for partners)
+ * @returns {Promise<Array>} Array of transfer request documents
  */
 exports.getAllTransferRequests = async (user, filters = {}) => {
 	// Partners can see all requests
@@ -157,10 +180,16 @@ exports.getAllTransferRequests = async (user, filters = {}) => {
 
 /**
  * Get transfer request by ID
+ * Store managers can only view requests involving their assigned store
+ * @async
  * @param {string} id - Transfer request ID
  * @param {Object} user - Current user
- * @returns {Object} Transfer request
- * @throws {Error} If not found or insufficient permissions
+ * @param {string} user.role - User role
+ * @param {string} [user.assignedStoreId] - Assigned store ID (for managers)
+ * @returns {Promise<Object>} Transfer request document with populated stores and items
+ * @throws {400} If transfer request ID format is invalid
+ * @throws {404} If transfer request not found
+ * @throws {403} If manager accessing request not involving their store
  */
 exports.getTransferRequestById = async (id, user) => {
 	if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -195,12 +224,24 @@ exports.getTransferRequestById = async (id, user) => {
 
 /**
  * Update transfer request status
+ * Enforces state transition rules and role permissions
+ * State transitions:
+ * - open → approved (partner only)
+ * - approved → in-transit (from store manager)
+ * - in-transit → completed (to store manager)
+ * - any status → cancelled (creator, partner, or involved managers)
+ * @async
  * @param {string} id - Transfer request ID
- * @param {string} newStatus - New status
+ * @param {string} newStatus - New status ('approved', 'in-transit', 'completed', 'cancelled')
  * @param {Object} user - Current user
- * @param {Object} additionalData - Additional data (e.g., closeReason)
- * @returns {Object} Updated transfer request
- * @throws {Error} If validation fails
+ * @param {string} user._id - User ID
+ * @param {string} user.role - User role
+ * @param {string} [user.assignedStoreId] - Assigned store ID (for managers)
+ * @param {Object} [additionalData={}] - Additional data
+ * @param {string} [additionalData.closeReason] - Reason for closing/cancelling
+ * @returns {Promise<Object>} Updated transfer request
+ * @throws {403} If invalid state transition or insufficient permissions
+ * @throws {400} If completing request with unprocessed items
  */
 exports.updateTransferStatus = async (
 	id,
@@ -271,7 +312,13 @@ exports.updateTransferStatus = async (
 
 /**
  * Deduct inventory from source store when marked as "sent"
- * @param {Object} transferRequest - Transfer request
+ * Soft deletes inventory items when quantity reaches 0
+ * @async
+ * @param {Object} transferRequest - Transfer request object
+ * @param {Array<Object>} transferRequest.items - Items to deduct
+ * @returns {Promise<void>}
+ * @throws {404} If inventory item not found
+ * @throws {400} If insufficient inventory quantity
  */
 exports.deductInventoryFromSource = async (transferRequest) => {
 	for (const item of transferRequest.items) {
@@ -305,7 +352,13 @@ exports.deductInventoryFromSource = async (transferRequest) => {
 
 /**
  * Add inventory to destination store when marked as "complete"
- * @param {Object} transferRequest - Transfer request
+ * Merges with existing inventory at same location or creates new
+ * Preserves container and card item data from source
+ * @async
+ * @param {Object} transferRequest - Transfer request object
+ * @param {Object} transferRequest.toStoreId - Destination store
+ * @param {Array<Object>} transferRequest.items - Items to add
+ * @returns {Promise<void>}
  */
 exports.addInventoryToDestination = async (transferRequest) => {
 	for (const item of transferRequest.items) {
@@ -356,8 +409,14 @@ exports.addInventoryToDestination = async (transferRequest) => {
 };
 
 /**
- * Return inventory to source store if request is closed after being sent
- * @param {Object} transferRequest - Transfer request
+ * Return inventory to source store if request is cancelled after being sent
+ * Reactivates soft-deleted inventory or creates new inventory entry
+ * Returned items default to back location
+ * @async
+ * @param {Object} transferRequest - Transfer request object
+ * @param {Object} transferRequest.fromStoreId - Source store
+ * @param {Array<Object>} transferRequest.items - Items to return
+ * @returns {Promise<void>}
  */
 exports.returnInventoryToSource = async (transferRequest) => {
 	for (const item of transferRequest.items) {
@@ -396,12 +455,17 @@ exports.returnInventoryToSource = async (transferRequest) => {
 };
 
 /**
- * Delete transfer request (soft delete)
+ * Delete transfer request (soft delete - sets isDeleted to true)
  * Only partners can delete, and only if status is "open" or "closed"
+ * @async
  * @param {string} id - Transfer request ID
  * @param {Object} user - Current user
- * @returns {Object} Deleted transfer request
- * @throws {Error} If validation fails
+ * @param {string} user.role - User role (must be 'partner')
+ * @returns {Promise<Object>} Deleted transfer request
+ * @throws {403} If user is not a partner
+ * @throws {400} If transfer request ID format is invalid
+ * @throws {404} If transfer request not found
+ * @throws {400} If request status prevents deletion
  */
 exports.deleteTransferRequest = async (id, user) => {
 	if (user.role !== USER_ROLES.PARTNER) {

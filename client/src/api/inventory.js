@@ -1,7 +1,17 @@
+/**
+ * Inventory API Client
+ * @module api/inventory
+ * @description Handles inventory management operations including containers and card inventory
+ */
+
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+/**
+ * Inventory API endpoints
+ * @namespace inventoryAPI
+ */
 export const inventoryAPI = {
 	/**
 	 * Get inventory for a specific store

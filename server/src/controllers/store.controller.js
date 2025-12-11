@@ -4,44 +4,55 @@
  */
 
 const storeService = require("../services/store.service");
+const { sendErrorResponse } = require("../utils/errorHandler");
 
 /**
- * Get all stores
+ * Get all active stores
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} JSON response with stores array
  */
 exports.getAllStores = async (req, res) => {
 	try {
 		const stores = await storeService.getAllStores();
 		res.json({ success: true, stores });
 	} catch (error) {
-		console.error("Get all stores error:", error);
-		res.status(500).json({
-			success: false,
-			message: "Error fetching stores",
-		});
+		sendErrorResponse(res, error, "Error fetching stores", "[StoreController] Get all stores");
 	}
 };
 
 /**
- * GET /api/stores/:id
- * Get store by ID
+ * Get store by ID with current capacity
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Store ID
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} JSON response with store details
+ * @throws {404} If store not found
+ * @throws {400} If invalid store ID
  */
 exports.getStoreById = async (req, res) => {
 	try {
 		const store = await storeService.getStoreById(req.params.id);
 		res.json({ success: true, store });
 	} catch (error) {
-		console.error("Get store by ID error:", error);
-		const statusCode = error.statusCode || 500;
-		res.status(statusCode).json({
-			success: false,
-			message: error.message || "Error fetching store",
-		});
+		sendErrorResponse(res, error, "Error fetching store", "[StoreController] Get store by ID");
 	}
 };
 
 /**
- * POST /api/stores
  * Create new store
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Store data
+ * @param {string} req.body.name - Store name
+ * @param {Object} req.body.location - Store location details
+ * @param {number} req.body.maxCapacity - Maximum storage capacity
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} JSON response with created store
+ * @throws {400} If validation fails
  */
 exports.createStore = async (req, res) => {
 	try {
@@ -52,18 +63,23 @@ exports.createStore = async (req, res) => {
 			message: "Store created successfully",
 		});
 	} catch (error) {
-		console.error("Create store error:", error);
-		const statusCode = error.statusCode || 500;
-		res.status(statusCode).json({
-			success: false,
-			message: error.message || "Error creating store",
-		});
+		sendErrorResponse(res, error, "Error creating store", "[StoreController] Create store");
 	}
 };
 
 /**
- * PUT /api/stores/:id
- * Update store
+ * Update existing store
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Store ID
+ * @param {Object} req.body - Updated store data
+ * @param {string} [req.body.name] - Updated store name
+ * @param {number} [req.body.maxCapacity] - Updated maximum capacity
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} JSON response with updated store
+ * @throws {404} If store not found
+ * @throws {400} If new capacity is less than current inventory
  */
 exports.updateStore = async (req, res) => {
 	try {
@@ -74,18 +90,20 @@ exports.updateStore = async (req, res) => {
 			message: "Store updated successfully",
 		});
 	} catch (error) {
-		console.error("Update store error:", error);
-		const statusCode = error.statusCode || 500;
-		res.status(statusCode).json({
-			success: false,
-			message: error.message || "Error updating store",
-		});
+		sendErrorResponse(res, error, "Error updating store", "[StoreController] Update store");
 	}
 };
 
 /**
- * DELETE /api/stores/:id
- * Delete store
+ * Delete store (soft delete - sets isActive to false)
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.id - Store ID
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} JSON response with success message
+ * @throws {404} If store not found
+ * @throws {400} If store has active inventory
  */
 exports.deleteStore = async (req, res) => {
 	try {
@@ -95,11 +113,6 @@ exports.deleteStore = async (req, res) => {
 			message: "Store deleted successfully",
 		});
 	} catch (error) {
-		console.error("Delete store error:", error);
-		const statusCode = error.statusCode || 500;
-		res.status(statusCode).json({
-			success: false,
-			message: error.message || "Error deleting store",
-		});
+		sendErrorResponse(res, error, "Error deleting store", "[StoreController] Delete store");
 	}
 };

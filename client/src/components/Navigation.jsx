@@ -46,6 +46,17 @@ function Navigation({ user, currentView, onNavigate, onLogout }) {
 				<Navbar.Toggle aria-controls="basic-navbar-nav" />
 				<Navbar.Collapse id="basic-navbar-nav">
 					<Nav className="me-auto">
+						{/* Manage Products - Partner Only */}
+						{isPartner && (
+							<Nav.Link
+								active={currentView === "products"}
+								onClick={() => onNavigate("products")}
+								className="mx-2"
+							>
+								Manage Products
+							</Nav.Link>
+						)}
+
 						{/* Manage Inventory - Everyone */}
 						<Nav.Link
 							active={currentView === "inventory"}
@@ -63,17 +74,6 @@ function Navigation({ user, currentView, onNavigate, onLogout }) {
 								className="mx-2"
 							>
 								Manage Stores
-							</Nav.Link>
-						)}
-
-						{/* Manage Products - Partner Only */}
-						{isPartner && (
-							<Nav.Link
-								active={currentView === "products"}
-								onClick={() => onNavigate("products")}
-								className="mx-2"
-							>
-								Manage Products
 							</Nav.Link>
 						)}
 

@@ -6,8 +6,8 @@
 import { useState, useEffect } from "react";
 import {
 	Container,
-	Tabs,
-	Tab,
+	Row,
+	Col,
 	Card,
 	Button,
 	Alert,
@@ -21,7 +21,6 @@ import DeleteStoreModal from "./modals/DeleteStoreModal";
 
 const StoreManagement = ({ user, onUnauthorized }) => {
 	const [stores, setStores] = useState([]);
-	const [activeTab, setActiveTab] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
 
@@ -48,19 +47,6 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 
 			if (response.success) {
 				setStores(response.stores);
-
-				// Filter stores based on role
-				const accessibleStores = filterStoresByRole(response.stores);
-
-				// Set active tab to first store if not already set or if current tab is not accessible
-				if (accessibleStores.length > 0) {
-					if (
-						!activeTab ||
-						!accessibleStores.find((s) => s._id === activeTab)
-					) {
-						setActiveTab(accessibleStores[0]._id);
-					}
-				}
 			}
 		} catch (err) {
 			console.error("Error fetching stores:", err);
@@ -80,7 +66,6 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 		}
 
 		fetchStores();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [user, onUnauthorized]);
 
 	const handleAddStore = () => {
@@ -111,7 +96,6 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 		if (response.success) {
 			setShowCreateModal(false);
 			await fetchStores();
-			setActiveTab(response.store._id);
 		}
 	};
 
@@ -159,10 +143,6 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 				)}
 			</div>
 
-			<p className="text-muted">
-				"todo: change minimum requirements for products and brands here."
-			</p>
-
 			{error && (
 				<Alert variant="danger" dismissible onClose={() => setError("")}>
 					{error}
@@ -187,49 +167,23 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 			{accessibleStores.length === 0 ? (
 				<Alert variant="info">No stores available.</Alert>
 			) : (
-				<Tabs
-					activeKey={activeTab}
-					onSelect={(k) => {
-						setActiveTab(k);
-					}}
-					className="mb-3"
-				>
+				<Row className="g-4">
 					{accessibleStores.map((store) => (
-						<Tab eventKey={store._id} title={store.name} key={store._id}>
-							<Card>
+						<Col md={6} lg={4} key={store._id}>
+							<Card className="h-100">
 								<Card.Body>
 									<div className="d-flex justify-content-between align-items-start mb-3">
 										<div>
-											<h4>{store.name}</h4>
-											<p className="text-muted mb-1">{store.fullAddress}</p>
-										</div>
-										<div className="d-flex gap-2">
-											{(user.role === "partner" ||
-												(user.role === "store-manager" &&
-													user.assignedStoreId === store._id)) && (
-												<Button
-													variant="outline-primary"
-													size="sm"
-													onClick={() => handleEditStore(store)}
-												>
-													Edit Store
-												</Button>
-											)}
-											{user.role === "partner" && (
-												<Button
-													variant="outline-danger"
-													size="sm"
-													onClick={() => handleDeleteClick(store)}
-												>
-													Delete Store
-												</Button>
-											)}
+											<h5>{store.name}</h5>
+											<p className="text-muted mb-0 small">
+												{store.fullAddress}
+											</p>
 										</div>
 									</div>
 
 									<div className="mb-3">
 										<div className="d-flex justify-content-between mb-2">
-											<span>
+											<span className="small">
 												<strong>Capacity:</strong> {store.currentCapacity} /{" "}
 												{store.maxCapacity}
 											</span>
@@ -264,7 +218,7 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 											store.currentCapacity,
 											store.maxCapacity
 										) >= 90 && (
-											<Alert variant="danger" className="mt-2 mb-0">
+											<Alert variant="danger" className="mt-2 mb-0 small">
 												<strong>Warning:</strong> Store is at{" "}
 												{calculateCapacityPercentage(
 													store.currentCapacity,
@@ -275,24 +229,49 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 										)}
 									</div>
 
-									<div>
-										<p className="mb-1">
+									<div className="mb-3">
+										<p className="mb-1 small">
 											<strong>Max Capacity:</strong> {store.maxCapacity} units
 										</p>
-										<p className="mb-1">
+										<p className="mb-1 small">
 											<strong>Current Capacity:</strong> {store.currentCapacity}{" "}
 											units
 										</p>
-										<p className="mb-1">
+										<p className="mb-0 small">
 											<strong>Available Space:</strong>{" "}
 											{store.maxCapacity - store.currentCapacity} units
 										</p>
 									</div>
+
+									<div className="d-flex gap-2">
+										{(user.role === "partner" ||
+											(user.role === "store-manager" &&
+												user.assignedStoreId === store._id)) && (
+											<Button
+												variant="outline-primary"
+												size="sm"
+												className="flex-grow-1"
+												onClick={() => handleEditStore(store)}
+											>
+												Edit
+											</Button>
+										)}
+										{user.role === "partner" && (
+											<Button
+												variant="outline-danger"
+												size="sm"
+												className="flex-grow-1"
+												onClick={() => handleDeleteClick(store)}
+											>
+												Delete
+											</Button>
+										)}
+									</div>
 								</Card.Body>
 							</Card>
-						</Tab>
+						</Col>
 					))}
-				</Tabs>
+				</Row>
 			)}
 
 			{/* Delete Store Modal */}
