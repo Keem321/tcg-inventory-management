@@ -21,13 +21,16 @@ export const transferRequestAPI = {
 
 	/**
 	 * Get all transfer requests (filtered by user permissions)
-	 * @param {Object} options - Optional filters { status } (status: pending, approved, closed)
+	 * @param {Object} options - Optional filters { status, storeId }
 	 * @returns {Promise<Object>} Transfer requests
 	 */
 	getTransferRequests: async (options = {}) => {
 		const params = {};
 		if (options.status) {
 			params.status = options.status;
+		}
+		if (options.storeId) {
+			params.storeId = options.storeId;
 		}
 
 		const response = await axios.get(`${API_URL}/api/transfer-requests`, {

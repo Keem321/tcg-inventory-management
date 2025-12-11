@@ -37,7 +37,14 @@ exports.generateRequestNumber = async () => {
  * @returns {Promise<Array>} Array of transfer request documents
  */
 exports.findAll = async (filters = {}) => {
-	return await TransferRequest.find({ ...filters, isActive: true })
+	const query = { isActive: true };
+
+	// Only add filters that have values
+	if (filters.status) {
+		query.status = filters.status;
+	}
+
+	return await TransferRequest.find(query)
 		.populate("fromStoreId", "name location")
 		.populate("toStoreId", "name location")
 		.populate("createdBy", "username email")
@@ -58,11 +65,17 @@ exports.findAll = async (filters = {}) => {
  * @returns {Promise<Array>} Array of transfer request documents
  */
 exports.findByStore = async (storeId, filters = {}) => {
-	return await TransferRequest.find({
+	const query = {
 		$or: [{ fromStoreId: storeId }, { toStoreId: storeId }],
-		...filters,
 		isActive: true,
-	})
+	};
+
+	// Only add filters that have values
+	if (filters.status) {
+		query.status = filters.status;
+	}
+
+	return await TransferRequest.find(query)
 		.populate("fromStoreId", "name location")
 		.populate("toStoreId", "name location")
 		.populate("createdBy", "username email")

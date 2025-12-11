@@ -127,18 +127,26 @@ exports.createTransferRequest = async (requestData, user) => {
 /**
  * Get all transfer requests (filtered by user permissions)
  * @param {Object} user - Current user
- * @param {Object} filters - Optional filters { status }
+ * @param {Object} filters - Optional filters { status, storeId }
  * @returns {Array} Array of transfer requests
  */
 exports.getAllTransferRequests = async (user, filters = {}) => {
 	// Partners can see all requests
 	if (user.role === USER_ROLES.PARTNER) {
-		return await transferRequestRepo.findAll(filters);
+		// If storeId filter is provided, filter by store
+		if (filters.storeId) {
+			return await transferRequestRepo.findByStore(filters.storeId, {
+				status: filters.status,
+			});
+		}
+		return await transferRequestRepo.findAll({ status: filters.status });
 	}
 
 	// Managers can only see requests involving their store
 	if (user.role === USER_ROLES.STORE_MANAGER) {
-		return await transferRequestRepo.findByStore(user.assignedStoreId, filters);
+		return await transferRequestRepo.findByStore(user.assignedStoreId, {
+			status: filters.status,
+		});
 	}
 
 	// Employees cannot access transfer requests

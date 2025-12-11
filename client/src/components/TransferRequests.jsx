@@ -31,6 +31,7 @@ function TransferRequests({ user }) {
 
 	// Filters
 	const [statusFilter, setStatusFilter] = useState("all");
+	const [storeFilter, setStoreFilter] = useState("all");
 
 	// Modals
 	const [showCreateModal, setShowCreateModal] = useState(false);
@@ -59,6 +60,9 @@ function TransferRequests({ user }) {
 			if (statusFilter !== "all") {
 				options.status = statusFilter;
 			}
+			if (storeFilter !== "all") {
+				options.storeId = storeFilter;
+			}
 
 			const response = await transferRequestAPI.getTransferRequests(options);
 			setTransferRequests(response.transferRequests);
@@ -67,7 +71,7 @@ function TransferRequests({ user }) {
 		} finally {
 			setLoading(false);
 		}
-	}, [statusFilter]);
+	}, [statusFilter, storeFilter]);
 
 	useEffect(() => {
 		loadTransferRequests();
@@ -259,6 +263,22 @@ function TransferRequests({ user }) {
 									<option value="sent">Sent</option>
 									<option value="complete">Complete</option>
 									<option value="closed">Closed</option>
+								</Form.Select>
+							</Form.Group>
+						</Col>
+						<Col md={4}>
+							<Form.Group>
+								<Form.Label>Filter by Store</Form.Label>
+								<Form.Select
+									value={storeFilter}
+									onChange={(e) => setStoreFilter(e.target.value)}
+								>
+									<option value="all">All Stores</option>
+									{stores.map((store) => (
+										<option value={store._id} key={store._id}>
+											{store.name}
+										</option>
+									))}
 								</Form.Select>
 							</Form.Group>
 						</Col>
