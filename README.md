@@ -1,208 +1,124 @@
 # TCG Inventory Management System
 
-A comprehensive inventory management solution designed for trading card game stores to manage retail operations across multiple store locations.
+Full-stack inventory management system for trading card game stores with multi-location support and role-based access control.
 
-## Overview
+## Features
 
-This system empowers store staff at three permission levels - Employees, Store Managers, and Partners - to efficiently manage inventory across sales floors and back storage areas. The dynamic interface adapts based on user role and assigned store, providing appropriate tools and visibility for each user's responsibilities.
+### Product Management
 
-Intelligent alerts and multi-level floor display management ensure optimal product representation and inventory control.
+- Catalog products by brand (Pokemon, MTG, Yu-Gi-Oh!, etc.) and type (booster packs, single cards, decks)
+- Track product details including SKU, pricing, and storage size
+- Filter and search across all products
 
-## Key Features
+### Inventory Tracking
 
-### Core Functionality
+- Separate floor and back storage locations per store
+- Real-time inventory levels with location tracking
+- Capacity management based on product unit sizes
+- Merge duplicate entries automatically
 
-- **Multi-Store Management**: Track inventory across multiple retail store locations
-- **Floor & Back Inventory**: Separate tracking for sales floor display and back storage
-- **Product Catalog**: Manage diverse product types by brand (Pokemon, MTG, Yu-Gi-Oh!, etc.)
-- **Inventory Tracking**: Real-time inventory levels with precise location tracking (floor/back, aisle/bin)
-- **Transfer Management**: Move inventory between stores or between floor and back with validation
-- **Intelligent Alerts**: Multi-level monitoring for capacity, stock levels, and floor display requirements
+### Multi-Store Operations
 
-### Authentication & Authorization
+- Manage multiple retail locations from a single system
+- Monitor capacity usage across all stores
+- View inventory breakdown by store and location
 
-- **Three-Tier Role-Based Access Control**: Dynamic permissions with store assignment
-  - **Employees**: Store-level access, create order requests, move items floor↔back
-  - **Store Managers**: Full store management, approve employee requests, create inter-store transfer requests
-  - **Partners**: System-wide access including store creation, all approvals, global configuration
-- **Store Assignment**: Employees and Store Managers assigned to specific stores; Partners have global access
-- **Dynamic UI**: Interface adapts based on role and store assignment
-- **Secure Authentication**: Industry-standard password hashing and session management
+### Transfer Request Workflow
 
-### Advanced Features
+- Multi-stage approval process for inventory movement
+- Role-based state transitions (open → approved → in-transit → completed)
+- Transfer history with status tracking
+- Prevents invalid operations (insufficient inventory, same-store transfers)
 
-- **Multi-Level Floor Display Management**: Configure minimums at 4 granularities:
-  - Specific product (e.g., "Crimson Vow Collector Booster")
-  - Product type + brand (e.g., "Booster Packs" for "Pokemon")
-  - Product type across brands (e.g., all "Booster Packs")
-  - Brand across types (e.g., all "Magic: The Gathering" products)
-- **Tiered Approval Workflow**: Employee requests → Store Manager/Partner approval
-- **Inter-Store Transfer Requests**: Store Managers request, Partners approve
-- **Bulk Purchase Constraints**: Enforce minimum order quantities for bulk items
-- **High-Value Item Alerts**: Notify managers of expensive cards in back storage
-- **Audit Trail**: Complete history of transfers, requests, and inventory changes
+### Role-Based Access Control
+
+- **Partners**: Full system access, create stores, approve all requests
+- **Store Managers**: Manage assigned store, create transfer requests, limited approvals
+- **Employees**: View-only access to assigned store
+- Dynamic UI based on user permissions
 
 ## Tech Stack
 
-### Frontend
+**Frontend**: React, Bootstrap, Vite  
+**Backend**: Node.js, Express, MongoDB (Mongoose)  
+**Testing**: Vitest, React Testing Library
 
-- **React** - UI component library
-- **Vite** - Build tool and dev server
-- **Vitest** + **React Testing Library** - Testing framework
+## Architecture
 
-### Backend
+**Three-Layer Backend**:
 
-- **Node.js** + **Express** - REST API server
-- **MongoDB** - flexible schema
-- **Vitest** - Backend testing
+- Controllers: HTTP request/response handling
+- Services: Business logic and validation
+- Repositories: Database operations
 
-### Testing
+**Collections**:
 
-- (trying) Test-driven development approach
-- Unit tests for components and API endpoints
-- Integration tests for workflows
+- **Users**: Authentication and role-based permissions
+- **Stores**: Location data with capacity tracking
+- **Products**: Catalog with brand, type, and pricing
+- **Inventory**: Stock levels per store (floor/back)
+- **TransferRequests**: Inter-store movement workflow with approval states
 
-## Database Schema
+## Key Implementation Details
 
-### Collections
+**Capacity Management**: Each product has a `unitSize`. Store capacity = sum of (inventory quantity × product unitSize) across all items. Creates/updates validate against available space.
 
-1. **Users** - Authentication, role management, and store assignment
-2. **Stores** - Retail locations with floor and back capacity tracking
-3. **Products** - Product catalog with brand, type, and product-specific fields
-4. **Inventory** - Stock levels per store with floor/back location tracking
-5. **Inventory Transfers** - Transfer history between stores with approval workflow
-6. **Capacity Alerts** - Automated monitoring alerts with multiple trigger types
-7. **Order Requests** - Employee request workflow with manager/partner approval
-8. **Floor Display Config** - Multi-level minimum configuration (product/type/brand)
+**Transfer Request State Machine**:
 
-## Business Logic
+- `open` → `approved` (Partner approves)
+- `approved` → `in-transit` (Source manager ships - inventory subtracted)
+- `in-transit` → `completed` (Destination manager receives - inventory added)
+- Any state → `cancelled` (Inventory returned to source)
 
-### Store Structure
+**Role Permissions**:
 
-- All locations are retail stores with both sales floor and back storage
-- Inventory tracked separately for "floor" (customer-facing) and "back" (storage)
-- Enables retail-specific workflows like floor restocking and high-value item security
+- Partners: All operations, view all stores
+- Store Managers: CRUD for assigned store, create transfer requests
+- Employees: Read-only for assigned store
 
-### Capacity Management
+**Inventory Merging**: System automatically combines duplicate inventory entries (same product, store, and location) to prevent fragmentation.
 
-- Each product has a `unitSize` representing space consumed
-- Store capacity = `sum(inventory items × unitSize)` across floor + back
-- Alerts trigger at 80% capacity (warning) and 100% (critical)
+**Code Quality**:
 
-### Floor Display Management
+- JSDoc documentation across all layers
+- Centralized error handling utility
+- Three-layer architecture (Controller → Service → Repository)
 
-Four-level hierarchical system for minimum floor quantities:
+## Setup & Running
 
-1. **Specific Product**: Individual SKU minimums (e.g., "Crimson Vow Collector Booster" = 10)
-2. **Product Type + Brand**: Type within brand (e.g., "Booster Packs" for "Pokemon" = 20)
-3. **Product Type**: Type across all brands (e.g., all "Deck Boxes" = 15)
-4. **Brand**: All products from brand (e.g., all "Magic: The Gathering" = 50)
-
-Most specific configuration takes precedence. Store Managers configure per-store; Partners set system-wide defaults.
-
-### Product Organization
-
-- **brand**: Game/product line (e.g., "Pokemon", "Magic: The Gathering", "Yu-Gi-Oh!")
-- **productType**: Item category (e.g., "boosterPack", "collectorBooster", "deck", "singleCard")
-- **name**: Specific product/set (e.g., "Crimson Vow Collector Booster", "Base Set Booster Pack")
-
-### Bulk Purchase Enforcement
-
-- Products can require bulk-only purchases (e.g., dice sold in sets of 10)
-- System validates quantities are multiples of `bulkQuantity`
-- Prevents partial bulk orders
-
-### Approval Workflows
-
-#### Order Requests (Adding Inventory)
-
-1. Employee submits request with product, quantity, destination (floor/back)
-2. System validates capacity and bulk constraints
-3. Store Manager (for their store) or Partner approves/rejects
-4. Approved requests automatically add inventory
-
-#### Inter-Store Transfers
-
-1. Store Manager or Partner initiates transfer request
-2. System validates source quantity and destination capacity
-3. If Store Manager initiated: Partner must approve
-4. If Partner initiated: Auto-approved
-5. Transfer completes, both stores updated
-
-### Alert Types
-
-- **Near-Capacity**: Store reaches 80% of max capacity
-- **Over-Capacity**: Attempt to exceed store capacity
-- **Low Stock**: Inventory falls below configured `minStockLevel`
-- **Low Floor Display**: Floor inventory below configured minimum (any of 4 levels)
-- **High-Value Card**: Expensive card in back storage (suggest moving to floor display)
-
-## Development Practices
-
-- **Test-Driven Development**: Tests written alongside features
-- **Code Documentation**: JSDoc comments for all functions
-- **Industry Standards**: Following SOLID and DRY principles
-- **Dynamic UI Design**: Interface adapts to user role and store assignment
-- **Permission-Based Features**: All actions validated against user role
-- **Version Control**: Git workflow with meaningful commits
-
-## Running
-
-**Terminal 1 - Backend Server:**
+**Backend** (Terminal 1):
 
 ```powershell
 cd server
-npm run dev
+npm install
+npm run dev  # http://localhost:5000
 ```
 
-Server runs on http://localhost:5000
-
-**Terminal 2 - Frontend Client:**
+**Frontend** (Terminal 2):
 
 ```powershell
 cd client
-npm run dev
+npm install
+npm run dev  # http://localhost:5173
 ```
 
-Client runs on http://localhost:5173
-
-## Testing
-
-Run frontend tests:
+**Testing**:
 
 ```powershell
-cd client; npx vitest
+cd client && npx vitest  # Frontend tests
+cd server && npx vitest  # Backend tests
 ```
 
-Run backend tests:
+## Security
 
-```powershell
-cd server; npx vitest
-```
-
-additional notes here as needed
-
-## Security Considerations
-
-- Password hashing with bcrypt
-- Input validation on client and server
+- Bcrypt password hashing
 - Session-based authentication
-- Role-based authorization middleware (research)
-- Rate limiting on authentication endpoints ??
-
-## Future Enhancements
-
-- Sales tracking and analytics integration
-- Automated reordering based on sales trends and stock levels
-- Barcode scanning for faster inventory updates
-- Advanced reporting dashboards with cross-store comparisons
-- Mobile app for store employees
-- Point-of-sale (POS) system integration
-- Customer loyalty program integration
-- Mobile layout for warehouse workers??
+- Role-based authorization middleware
+- Input validation on client and server
+- MongoDB injection prevention via Mongoose
 
 ---
 
 **Project Type**: Skillstorm Project 1  
-**Developer**: Keem  
+**Developer**: Keem
 **Repository**: [tcg-inventory-management](https://github.com/Keem321/tcg-inventory-management)
