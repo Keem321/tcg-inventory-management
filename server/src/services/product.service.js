@@ -19,7 +19,10 @@ exports.getAllProducts = async (filters = {}) => {
 	const queryFilters = {};
 	if (productType) queryFilters.productType = productType;
 	if (brand) queryFilters.brand = brand;
-	if (isActive !== undefined) queryFilters.isActive = isActive === "true";
+	if (isActive !== undefined) {
+		// Handle both boolean and string values
+		queryFilters.isActive = isActive === true || isActive === "true";
+	}
 
 	return productRepo.findAll(queryFilters, search || null);
 };
@@ -77,13 +80,19 @@ exports.getProductById = async (productId) => {
 			};
 		}
 
-		// For cards, count the cards in containers
-		let quantity = item.quantity;
-		if (item.cardContainer?.cards) {
-			quantity = item.cardContainer.cards.reduce(
-				(sum, card) => sum + card.quantity,
-				0
-			);
+		// Determine quantity based on item type
+		let quantity = 0;
+
+		if (item.cardContainer?.cardInventory) {
+			// For card containers, find this specific product's quantity inside
+			const matchingCards = item.cardContainer.cardInventory.filter((card) => {
+				const cardProductId = card.productId?._id || card.productId;
+				return cardProductId && cardProductId.toString() === productId;
+			});
+			quantity = matchingCards.reduce((sum, card) => sum + card.quantity, 0);
+		} else {
+			// For direct inventory, use the item's quantity
+			quantity = item.quantity || 0;
 		}
 
 		if (item.location === LOCATIONS.FLOOR) {

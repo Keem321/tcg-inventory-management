@@ -101,16 +101,26 @@ exports.countInventory = async (productId) => {
 
 /**
  * Find inventory for a product across all stores
+ * Includes both direct inventory and cards within containers
  * @param {string} productId - Product ID
  * @returns {Promise<Array>} Array of inventory documents
  */
 exports.findInventoryByProduct = async (productId) => {
+	// Find inventory where this product is either:
+	// 1. Direct inventory (productId matches)
+	// 2. A card within a container (cardContainer.cardInventory.productId matches)
 	return await Inventory.find({
-		productId,
-		isActive: true,
+		$or: [
+			{ productId, isActive: true },
+			{
+				"cardContainer.cardInventory.productId": productId,
+				isActive: true,
+			},
+		],
 	})
 		.populate("storeId", "name location")
-		.select("storeId quantity location cardContainer");
+		.populate("cardContainer.cardInventory.productId", "name sku")
+		.select("storeId productId quantity location cardContainer");
 };
 
 /**

@@ -190,8 +190,6 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 				<Tabs
 					activeKey={activeTab}
 					onSelect={(k) => {
-						console.log("Tab clicked:", k);
-						console.log("Current activeTab:", activeTab);
 						setActiveTab(k);
 					}}
 					className="mb-3"
