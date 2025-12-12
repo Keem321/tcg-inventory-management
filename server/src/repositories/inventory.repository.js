@@ -25,8 +25,9 @@ exports.findAll = async (filters = {}) => {
 		.sort({ storeId: 1, location: 1, productId: 1 });
 
 	// Filter out inventory items where the product is inactive
+	// Containers don't have productId, so keep them
 	return results.filter(
-		(item) => item.productId && item.productId.isActive !== false
+		(item) => !item.productId || item.productId.isActive !== false
 	);
 };
 
@@ -56,8 +57,9 @@ exports.findByStore = async (storeId, filters = {}) => {
 		.sort({ location: 1, productId: 1 });
 
 	// Filter out inventory items where the product is inactive
+	// Containers don't have productId, so keep them
 	return results.filter(
-		(item) => item.productId && item.productId.isActive !== false
+		(item) => !item.productId || item.productId.isActive !== false
 	);
 };
 
