@@ -168,109 +168,229 @@ const StoreManagement = ({ user, onUnauthorized }) => {
 				<Alert variant="info">No stores available.</Alert>
 			) : (
 				<Row className="g-4">
-					{accessibleStores.map((store) => (
-						<Col md={6} lg={4} key={store._id}>
-							<Card className="h-100">
-								<Card.Body>
-									<div className="d-flex justify-content-between align-items-start mb-3">
-										<div>
-											<h5>{store.name}</h5>
-											<p className="text-muted mb-0 small">
-												{store.fullAddress}
-											</p>
+					{accessibleStores.map((store) => {
+						const capacityPercentage = calculateCapacityPercentage(
+							store.currentCapacity,
+							store.maxCapacity
+						);
+						const capacityVariant = getCapacityVariant(capacityPercentage);
+
+						// Color scheme based on capacity
+						const borderColors = {
+							success: "#198754",
+							warning: "#ffc107",
+							danger: "#dc3545",
+						};
+						const bgColors = {
+							success: "#d1e7dd",
+							warning: "#fff8e1",
+							danger: "#f8d7da",
+						};
+						const borderColor = borderColors[capacityVariant];
+						const bgColor = bgColors[capacityVariant];
+
+						return (
+							<Col md={6} lg={4} key={store._id}>
+								<Card
+									className="h-100 shadow-sm"
+									style={{
+										borderLeft: `6px solid ${borderColor}`,
+										transition: "transform 0.2s, box-shadow 0.2s",
+									}}
+									onMouseEnter={(e) => {
+										e.currentTarget.style.transform = "translateY(-4px)";
+										e.currentTarget.style.boxShadow =
+											"0 .5rem 1rem rgba(0,0,0,.15)";
+									}}
+									onMouseLeave={(e) => {
+										e.currentTarget.style.transform = "translateY(0)";
+										e.currentTarget.style.boxShadow =
+											"0 .125rem .25rem rgba(0,0,0,.075)";
+									}}
+								>
+									{/* Store Header with Icon */}
+									<div
+										style={{
+											background: `linear-gradient(135deg, ${bgColor} 0%, #ffffff 100%)`,
+											padding: "1.25rem 1.25rem 1rem 1.25rem",
+											borderBottom: `2px solid ${borderColor}`,
+										}}
+									>
+										<div className="d-flex align-items-start gap-3">
+											<div
+												style={{
+													fontSize: "2.5rem",
+													lineHeight: "1",
+												}}
+											>
+												🏪
+											</div>
+											<div className="flex-grow-1">
+												<h5 className="mb-1" style={{ fontWeight: "700" }}>
+													{store.name}
+												</h5>
+												<div
+													className="d-flex align-items-center gap-1 text-muted"
+													style={{ fontSize: "0.85rem" }}
+												>
+													<span>📍</span>
+													<span>{store.fullAddress}</span>
+												</div>
+											</div>
 										</div>
 									</div>
 
-									<div className="mb-3">
-										<div className="d-flex justify-content-between mb-2">
-											<span className="small">
-												<strong>Capacity:</strong> {store.currentCapacity} /{" "}
-												{store.maxCapacity}
-											</span>
-											<Badge
-												bg={getCapacityVariant(
-													calculateCapacityPercentage(
-														store.currentCapacity,
-														store.maxCapacity
-													)
-												)}
-											>
-												{calculateCapacityPercentage(
-													store.currentCapacity,
-													store.maxCapacity
-												)}
-												%
-											</Badge>
+									<Card.Body>
+										{/* Capacity Status Banner */}
+										<div
+											className="mb-3 p-2 rounded"
+											style={{
+												backgroundColor: bgColor,
+												border: `1px solid ${borderColor}`,
+											}}
+										>
+											<div className="d-flex justify-content-between align-items-center mb-2">
+												<span
+													style={{
+														fontWeight: "600",
+														fontSize: "0.9rem",
+														color: borderColor,
+													}}
+												>
+													Store Capacity
+												</span>
+												<Badge
+													bg={capacityVariant}
+													style={{
+														fontSize: "0.9rem",
+														padding: "0.4rem 0.8rem",
+														fontWeight: "700",
+													}}
+												>
+													{capacityPercentage}%
+												</Badge>
+											</div>
+											<ProgressBar
+												now={capacityPercentage}
+												variant={capacityVariant}
+												style={{ height: "12px" }}
+											/>
 										</div>
-										<ProgressBar
-											now={calculateCapacityPercentage(
-												store.currentCapacity,
-												store.maxCapacity
-											)}
-											variant={getCapacityVariant(
-												calculateCapacityPercentage(
-													store.currentCapacity,
-													store.maxCapacity
-												)
-											)}
-										/>
-										{calculateCapacityPercentage(
-											store.currentCapacity,
-											store.maxCapacity
-										) >= 90 && (
-											<Alert variant="danger" className="mt-2 mb-0 small">
-												<strong>Warning:</strong> Store is at{" "}
-												{calculateCapacityPercentage(
-													store.currentCapacity,
-													store.maxCapacity
-												)}
-												% capacity!
+
+										{/* High Capacity Warning */}
+										{capacityPercentage >= 90 && (
+											<Alert
+												variant="danger"
+												className="py-2 px-3 mb-3"
+												style={{ fontSize: "0.85rem" }}
+											>
+												<strong>⚠️ Critical:</strong> Store is at{" "}
+												{capacityPercentage}% capacity!
 											</Alert>
 										)}
-									</div>
 
-									<div className="mb-3">
-										<p className="mb-1 small">
-											<strong>Max Capacity:</strong> {store.maxCapacity} units
-										</p>
-										<p className="mb-1 small">
-											<strong>Current Capacity:</strong> {store.currentCapacity}{" "}
-											units
-										</p>
-										<p className="mb-0 small">
-											<strong>Available Space:</strong>{" "}
-											{store.maxCapacity - store.currentCapacity} units
-										</p>
-									</div>
+										{/* Capacity Stats Grid */}
+										<div className="mb-3">
+											<Row className="g-2">
+												<Col xs={6}>
+													<div
+														className="p-2 rounded text-center"
+														style={{ backgroundColor: "#f8f9fa" }}
+													>
+														<div
+															style={{
+																fontSize: "1.5rem",
+																fontWeight: "700",
+																color: "#0d6efd",
+															}}
+														>
+															{store.maxCapacity}
+														</div>
+														<div
+															className="text-muted"
+															style={{ fontSize: "0.75rem" }}
+														>
+															Max Capacity
+														</div>
+													</div>
+												</Col>
+												<Col xs={6}>
+													<div
+														className="p-2 rounded text-center"
+														style={{ backgroundColor: "#f8f9fa" }}
+													>
+														<div
+															style={{
+																fontSize: "1.5rem",
+																fontWeight: "700",
+																color: borderColor,
+															}}
+														>
+															{store.currentCapacity}
+														</div>
+														<div
+															className="text-muted"
+															style={{ fontSize: "0.75rem" }}
+														>
+															Current Stock
+														</div>
+													</div>
+												</Col>
+												<Col xs={12}>
+													<div
+														className="p-2 rounded text-center"
+														style={{ backgroundColor: "#e7f6fd" }}
+													>
+														<div
+															style={{
+																fontSize: "1.5rem",
+																fontWeight: "700",
+																color: "#0dcaf0",
+															}}
+														>
+															{store.maxCapacity - store.currentCapacity}
+														</div>
+														<div
+															className="text-muted"
+															style={{ fontSize: "0.75rem" }}
+														>
+															Available Space
+														</div>
+													</div>
+												</Col>
+											</Row>
+										</div>
 
-									<div className="d-flex gap-2">
-										{(user.role === "partner" ||
-											(user.role === "store-manager" &&
-												user.assignedStoreId === store._id)) && (
-											<Button
-												variant="outline-primary"
-												size="sm"
-												className="flex-grow-1"
-												onClick={() => handleEditStore(store)}
-											>
-												Edit
-											</Button>
-										)}
-										{user.role === "partner" && (
-											<Button
-												variant="outline-danger"
-												size="sm"
-												className="flex-grow-1"
-												onClick={() => handleDeleteClick(store)}
-											>
-												Delete
-											</Button>
-										)}
-									</div>
-								</Card.Body>
-							</Card>
-						</Col>
-					))}
+										{/* Action Buttons */}
+										<div className="d-flex gap-2">
+											{(user.role === "partner" ||
+												(user.role === "store-manager" &&
+													user.assignedStoreId === store._id)) && (
+												<Button
+													variant="outline-primary"
+													size="sm"
+													onClick={() => handleEditStore(store)}
+													style={{ fontWeight: "600", flex: "3" }}
+												>
+													Edit
+												</Button>
+											)}
+											{user.role === "partner" && (
+												<Button
+													variant="outline-danger"
+													size="sm"
+													onClick={() => handleDeleteClick(store)}
+													style={{ fontWeight: "600", flex: "1" }}
+												>
+													Delete
+												</Button>
+											)}
+										</div>
+									</Card.Body>
+								</Card>
+							</Col>
+						);
+					})}
 				</Row>
 			)}
 
