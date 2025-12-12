@@ -260,7 +260,7 @@ function InventoryManagement({ user }) {
 	// CRUD Handlers
 	const handleOpenCreateModal = async () => {
 		try {
-			const response = await productAPI.getProducts();
+			const response = await productAPI.getProducts({ isActive: true });
 			setProducts(response.products || []);
 			setShowCreateModal(true);
 		} catch (err) {

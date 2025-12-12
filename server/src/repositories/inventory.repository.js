@@ -10,22 +10,29 @@ const { LOCATIONS } = require("../constants/enums");
 
 /**
  * Find all inventory with optional filters
+ * Only returns inventory for active products
  * @param {Object} filters - Query filters
  * @returns {Promise<Array>} Array of inventory documents
  */
 exports.findAll = async (filters = {}) => {
-	return await Inventory.find({ ...filters, isActive: true })
+	const results = await Inventory.find({ ...filters, isActive: true })
 		.populate("storeId", "name location fullAddress")
-		.populate("productId", "name sku productType brand")
+		.populate("productId", "name sku productType brand isActive")
 		.populate(
 			"cardContainer.cardInventory.productId",
 			"name sku productType brand cardDetails"
 		)
 		.sort({ storeId: 1, location: 1, productId: 1 });
+
+	// Filter out inventory items where the product is inactive
+	return results.filter(
+		(item) => item.productId && item.productId.isActive !== false
+	);
 };
 
 /**
  * Find inventory by store
+ * Only returns inventory for active products
  * @param {string} storeId - Store ID
  * @param {Object} filters - Additional filters
  * @returns {Promise<Array>} Array of inventory documents
@@ -35,18 +42,23 @@ exports.findByStore = async (storeId, filters = {}) => {
 	// Convert storeId string to ObjectId for proper query
 	const storeObjectId = new mongoose.Types.ObjectId(storeId);
 
-	return await Inventory.find({
+	const results = await Inventory.find({
 		storeId: storeObjectId,
 		...filters,
 		isActive: true,
 	})
 		.populate("storeId", "name location fullAddress")
-		.populate("productId", "name sku productType brand")
+		.populate("productId", "name sku productType brand isActive")
 		.populate(
 			"cardContainer.cardInventory.productId",
 			"name sku productType brand cardDetails"
 		)
 		.sort({ location: 1, productId: 1 });
+
+	// Filter out inventory items where the product is inactive
+	return results.filter(
+		(item) => item.productId && item.productId.isActive !== false
+	);
 };
 
 /**

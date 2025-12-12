@@ -11,6 +11,7 @@ import {
 	Spinner,
 	Alert,
 	Collapse,
+	Modal,
 } from "react-bootstrap";
 import { productAPI } from "../api/products";
 import CreateProductModal from "./modals/CreateProductModal";
@@ -51,6 +52,8 @@ function ProductManagement({ user }) {
 
 	// Modal state
 	const [showCreateModal, setShowCreateModal] = useState(false);
+	const [showConfirmModal, setShowConfirmModal] = useState(false);
+	const [confirmAction, setConfirmAction] = useState(null); // { type: 'deactivate'|'activate', productId, productName }
 
 	// Sorting state
 	const [sortColumn, setSortColumn] = useState("productType");
@@ -207,15 +210,16 @@ function ProductManagement({ user }) {
 	};
 
 	// Handle delete product (soft delete - deactivate)
-	const handleDelete = async (productId) => {
-		if (
-			!window.confirm(
-				"Are you sure you want to deactivate this product? It will no longer be available for new inventory."
-			)
-		) {
-			return;
-		}
+	const handleDelete = (product) => {
+		setConfirmAction({
+			type: "deactivate",
+			productId: product._id,
+			productName: product.name,
+		});
+		setShowConfirmModal(true);
+	};
 
+	const executeDelete = async (productId) => {
 		try {
 			await productAPI.deleteProduct(productId);
 			loadProducts();
@@ -225,21 +229,36 @@ function ProductManagement({ user }) {
 	};
 
 	// Handle activate product (reactivate)
-	const handleActivate = async (productId) => {
-		if (
-			!window.confirm(
-				"Are you sure you want to reactivate this product? It will be available for new inventory again."
-			)
-		) {
-			return;
-		}
+	const handleActivate = (product) => {
+		setConfirmAction({
+			type: "activate",
+			productId: product._id,
+			productName: product.name,
+		});
+		setShowConfirmModal(true);
+	};
 
+	const executeActivate = async (productId) => {
 		try {
 			await productAPI.updateProduct(productId, { isActive: true });
 			loadProducts();
 		} catch (err) {
 			setError(err.response?.data?.message || err.message);
 		}
+	};
+
+	// Handle confirmation
+	const handleConfirm = async () => {
+		if (!confirmAction) return;
+
+		if (confirmAction.type === "deactivate") {
+			await executeDelete(confirmAction.productId);
+		} else if (confirmAction.type === "activate") {
+			await executeActivate(confirmAction.productId);
+		}
+
+		setShowConfirmModal(false);
+		setConfirmAction(null);
 	};
 
 	// Handle create product
@@ -569,7 +588,7 @@ function ProductManagement({ user }) {
 															<Button
 																variant="warning"
 																size="sm"
-																onClick={() => handleDelete(product._id)}
+																onClick={() => handleDelete(product)}
 															>
 																Deactivate
 															</Button>
@@ -577,7 +596,7 @@ function ProductManagement({ user }) {
 															<Button
 																variant="success"
 																size="sm"
-																onClick={() => handleActivate(product._id)}
+																onClick={() => handleActivate(product)}
 															>
 																Activate
 															</Button>
@@ -633,6 +652,71 @@ function ProductManagement({ user }) {
 				onHide={() => setShowCreateModal(false)}
 				onProductCreated={handleCreateProduct}
 			/>
+
+			{/* Confirmation Modal */}
+			<Modal
+				show={showConfirmModal}
+				onHide={() => {
+					setShowConfirmModal(false);
+					setConfirmAction(null);
+				}}
+				centered
+			>
+				<Modal.Header closeButton>
+					<Modal.Title>
+						{confirmAction?.type === "deactivate"
+							? "Deactivate Product"
+							: "Activate Product"}
+					</Modal.Title>
+				</Modal.Header>
+				<Modal.Body>
+					{confirmAction?.type === "deactivate" ? (
+						<>
+							<p>
+								Are you sure you want to deactivate{" "}
+								<strong>{confirmAction.productName}</strong>?
+							</p>
+							<Alert variant="warning" className="mb-0">
+								<small>
+									This product will no longer be available for new inventory.
+									Existing inventory will remain unchanged.
+								</small>
+							</Alert>
+						</>
+					) : (
+						<>
+							<p>
+								Are you sure you want to reactivate{" "}
+								<strong>{confirmAction?.productName}</strong>?
+							</p>
+							<Alert variant="info" className="mb-0">
+								<small>
+									This product will be available for new inventory again.
+								</small>
+							</Alert>
+						</>
+					)}
+				</Modal.Body>
+				<Modal.Footer>
+					<Button
+						variant="secondary"
+						onClick={() => {
+							setShowConfirmModal(false);
+							setConfirmAction(null);
+						}}
+					>
+						Cancel
+					</Button>
+					<Button
+						variant={
+							confirmAction?.type === "deactivate" ? "warning" : "success"
+						}
+						onClick={handleConfirm}
+					>
+						{confirmAction?.type === "deactivate" ? "Deactivate" : "Activate"}
+					</Button>
+				</Modal.Footer>
+			</Modal>
 		</Container>
 	);
 }
