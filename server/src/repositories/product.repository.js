@@ -9,17 +9,23 @@ const { Inventory } = require("../models/inventory.model");
 /**
  * Find all products with optional filters
  * @param {Object} filters - Query filters
- * @param {string} searchText - Text search query
+ * @param {string} searchText - Text search query (searches name, SKU, and description)
  * @returns {Promise<Array>} Array of product documents
  */
 exports.findAll = async (filters = {}, searchText = null) => {
 	if (searchText) {
+		// Use regex search to match name, SKU, or description (case-insensitive)
+		const searchRegex = new RegExp(searchText, "i");
 		return await Product.find({
 			...filters,
-			$text: { $search: searchText },
+			$or: [
+				{ name: searchRegex },
+				{ sku: searchRegex },
+				{ description: searchRegex },
+			],
 		})
 			.select("-__v")
-			.sort({ score: { $meta: "textScore" } });
+			.sort({ brand: 1, name: 1 });
 	}
 
 	return await Product.find(filters).select("-__v").sort({ brand: 1, name: 1 });

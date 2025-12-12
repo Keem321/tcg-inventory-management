@@ -295,51 +295,166 @@ function TransferRequests({ user }) {
 							<p className="text-muted mt-2">Loading transfer requests...</p>
 						</div>
 					) : (
-						<Table responsive hover>
+						<Table
+							responsive
+							hover
+							style={{ borderCollapse: "separate", borderSpacing: "0 8px" }}
+						>
 							<thead>
 								<tr>
-									<th>Request #</th>
-									<th>From Store</th>
-									<th>To Store</th>
-									<th>Items</th>
-									<th>Status</th>
-									<th>Created</th>
-									<th>Actions</th>
+									<th style={{ borderBottom: "2px solid #dee2e6" }}>
+										Request #
+									</th>
+									<th style={{ borderBottom: "2px solid #dee2e6" }}>
+										Transfer Route
+									</th>
+									<th style={{ borderBottom: "2px solid #dee2e6" }}>Items</th>
+									<th style={{ borderBottom: "2px solid #dee2e6" }}>Status</th>
+									<th style={{ borderBottom: "2px solid #dee2e6" }}>Created</th>
+									<th style={{ borderBottom: "2px solid #dee2e6" }}>Actions</th>
 								</tr>
 							</thead>
 							<tbody>
 								{transferRequests.length === 0 ? (
 									<tr>
-										<td colSpan="7" className="text-center text-muted">
+										<td
+											colSpan="6"
+											className="text-center text-muted"
+											style={{ padding: "2rem" }}
+										>
 											No transfer requests found
 										</td>
 									</tr>
 								) : (
-									transferRequests.map((request) => (
-										<tr key={request._id}>
-											<td>
-												<code>{request.requestNumber}</code>
-											</td>
-											<td>{request.fromStoreId?.name}</td>
-											<td>{request.toStoreId?.name}</td>
-											<td>{request.items?.length || 0} items</td>
-											<td>
-												<Badge bg={getStatusBadge(request.status)}>
-													{request.status}
-												</Badge>
-											</td>
-											<td>{formatDate(request.createdAt)}</td>
-											<td>
-												<Button
-													variant="outline-primary"
-													size="sm"
-													onClick={() => handleViewDetails(request._id)}
+									transferRequests.map((request) => {
+										const statusColors = {
+											open: { border: "#6c757d", bg: "#f8f9fa" },
+											requested: { border: "#0dcaf0", bg: "#e7f6fd" },
+											sent: { border: "#ffc107", bg: "#fff8e1" },
+											complete: { border: "#198754", bg: "#d1e7dd" },
+											closed: { border: "#dc3545", bg: "#f8d7da" },
+										};
+										const colors =
+											statusColors[request.status] || statusColors.open;
+
+										return (
+											<tr
+												key={request._id}
+												style={{ borderLeft: `4px solid ${colors.border}` }}
+											>
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+													}}
 												>
-													View Details
-												</Button>
-											</td>
-										</tr>
-									))
+													<code
+														style={{
+															fontSize: "0.95rem",
+															fontWeight: "600",
+														}}
+													>
+														{request.requestNumber}
+													</code>
+												</td>
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+													}}
+												>
+													<div className="d-flex align-items-center gap-2">
+														<div>
+															<strong>{request.fromStoreId?.name}</strong>
+															<div className="small text-muted">
+																{request.fromStoreId?.location?.city}
+															</div>
+														</div>
+														<span
+															style={{ fontSize: "1.2rem", color: "#6c757d" }}
+														>
+															→
+														</span>
+														<div>
+															<strong>{request.toStoreId?.name}</strong>
+															<div className="small text-muted">
+																{request.toStoreId?.location?.city}
+															</div>
+														</div>
+													</div>
+												</td>
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+													}}
+												>
+													<Badge
+														bg="primary"
+														pill
+														style={{ fontSize: "0.9rem" }}
+													>
+														{request.items?.length || 0} items
+													</Badge>
+												</td>
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+													}}
+												>
+													<Badge
+														bg={getStatusBadge(request.status)}
+														style={{
+															fontSize: "0.85rem",
+															padding: "0.4rem 0.8rem",
+															textTransform: "uppercase",
+															fontWeight: "600",
+														}}
+													>
+														{request.status}
+													</Badge>
+												</td>
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+													}}
+												>
+													<div style={{ fontSize: "0.9rem" }}>
+														{formatDate(request.createdAt)}
+													</div>
+													<div
+														className="small text-muted"
+														style={{ fontSize: "0.8rem" }}
+													>
+														by {request.createdBy?.username}
+													</div>
+												</td>
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+													}}
+												>
+													<Button
+														variant="outline-primary"
+														size="sm"
+														onClick={() => handleViewDetails(request._id)}
+														style={{ fontWeight: "500" }}
+													>
+														View Details
+													</Button>
+												</td>
+											</tr>
+										);
+									})
 								)}
 							</tbody>
 						</Table>
@@ -381,162 +496,275 @@ function TransferRequests({ user }) {
 						</div>
 					) : selectedRequest ? (
 						<>
-							<Row>
-								<Col md={6}>
-									<h5>From Store</h5>
-									<p>
-										<strong>{selectedRequest.fromStoreId?.name}</strong>
-										<br />
-										{selectedRequest.fromStoreId?.location?.city},{" "}
-										{selectedRequest.fromStoreId?.location?.state}
-									</p>
-								</Col>
-								<Col md={6}>
-									<h5>To Store</h5>
-									<p>
-										<strong>{selectedRequest.toStoreId?.name}</strong>
-										<br />
-										{selectedRequest.toStoreId?.location?.city},{" "}
-										{selectedRequest.toStoreId?.location?.state}
-									</p>
-								</Col>
-							</Row>
+							{/* Store Route Section */}
+							<Card className="mb-3" style={{ backgroundColor: "#f8f9fa" }}>
+								<Card.Body>
+									<Row className="align-items-center">
+										<Col md={5}>
+											<div className="text-center">
+												<div className="small text-muted mb-1">FROM</div>
+												<h5 className="mb-1">
+													{selectedRequest.fromStoreId?.name}
+												</h5>
+												<div className="text-muted small">
+													{selectedRequest.fromStoreId?.location?.city},{" "}
+													{selectedRequest.fromStoreId?.location?.state}
+												</div>
+											</div>
+										</Col>
+										<Col
+											md={2}
+											className="text-center"
+											style={{ fontSize: "2rem", color: "#0d6efd" }}
+										>
+											→
+										</Col>
+										<Col md={5}>
+											<div className="text-center">
+												<div className="small text-muted mb-1">TO</div>
+												<h5 className="mb-1">
+													{selectedRequest.toStoreId?.name}
+												</h5>
+												<div className="text-muted small">
+													{selectedRequest.toStoreId?.location?.city},{" "}
+													{selectedRequest.toStoreId?.location?.state}
+												</div>
+											</div>
+										</Col>
+									</Row>
+								</Card.Body>
+							</Card>
 
-							<h5 className="mt-3">Status</h5>
-							<Badge
-								bg={getStatusBadge(selectedRequest.status)}
-								className="mb-3"
-							>
-								{selectedRequest.status}
-							</Badge>
+							{/* Status Section */}
+							<div className="mb-3 d-flex align-items-center gap-2">
+								<h6 className="mb-0">Status:</h6>
+								<Badge
+									bg={getStatusBadge(selectedRequest.status)}
+									style={{
+										fontSize: "0.9rem",
+										padding: "0.5rem 1rem",
+										textTransform: "uppercase",
+										fontWeight: "600",
+									}}
+								>
+									{selectedRequest.status}
+								</Badge>
+							</div>
 
-							<h5 className="mt-3">Items</h5>
-							<Table size="sm">
-								<thead>
-									<tr>
-										<th>Product</th>
-										<th>SKU</th>
-										<th>Quantity</th>
-										<th>Location</th>
-									</tr>
-								</thead>
-								<tbody>
-									{selectedRequest.items?.map((item, idx) => (
-										<tr key={idx}>
-											<td>{item.productId?.name}</td>
-											<td>
-												<code>{item.productId?.sku}</code>
-											</td>
-											<td>{item.requestedQuantity}</td>
-											<td>
-												<Badge
-													bg={
-														item.inventoryId?.location === "floor"
-															? "primary"
-															: "secondary"
-													}
-												>
-													{item.inventoryId?.location || "N/A"}
-												</Badge>
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</Table>
+							{/* Items Section */}
+							<Card className="mb-3">
+								<Card.Header
+									style={{ backgroundColor: "#e7f1ff", fontWeight: "600" }}
+								>
+									Transfer Items
+								</Card.Header>
+								<Card.Body className="p-0">
+									<Table size="sm" className="mb-0" hover>
+										<thead style={{ backgroundColor: "#f8f9fa" }}>
+											<tr>
+												<th style={{ padding: "0.75rem" }}>Product</th>
+												<th style={{ padding: "0.75rem" }}>SKU</th>
+												<th style={{ padding: "0.75rem" }}>Quantity</th>
+												<th style={{ padding: "0.75rem" }}>Location</th>
+											</tr>
+										</thead>
+										<tbody>
+											{selectedRequest.items?.map((item, idx) => (
+												<tr key={idx}>
+													<td style={{ padding: "0.75rem" }}>
+														<strong>{item.productId?.name}</strong>
+													</td>
+													<td style={{ padding: "0.75rem" }}>
+														<code style={{ fontSize: "0.9rem" }}>
+															{item.productId?.sku}
+														</code>
+													</td>
+													<td style={{ padding: "0.75rem" }}>
+														<Badge bg="primary" pill>
+															{item.requestedQuantity}
+														</Badge>
+													</td>
+													<td style={{ padding: "0.75rem" }}>
+														<Badge
+															bg={
+																item.inventoryId?.location === "floor"
+																	? "info"
+																	: "secondary"
+															}
+														>
+															{item.inventoryId?.location || "N/A"}
+														</Badge>
+													</td>
+												</tr>
+											))}
+										</tbody>
+									</Table>
+								</Card.Body>
+							</Card>
 
 							{selectedRequest.notes && (
-								<>
-									<h5 className="mt-3">Notes</h5>
-									<p>{selectedRequest.notes}</p>
-								</>
+								<Card className="mb-3">
+									<Card.Header
+										style={{ backgroundColor: "#fff8e1", fontWeight: "600" }}
+									>
+										Notes
+									</Card.Header>
+									<Card.Body>
+										<p className="mb-0">{selectedRequest.notes}</p>
+									</Card.Body>
+								</Card>
 							)}
 
-							<h5 className="mt-3">Timeline</h5>
-							<ul>
-								<li>
-									<strong>Created:</strong>{" "}
-									{formatDate(selectedRequest.createdAt)} by{" "}
-									{selectedRequest.createdBy?.username}
-								</li>
-								{selectedRequest.requestedAt && (
-									<li>
-										<strong>Requested:</strong>{" "}
-										{formatDate(selectedRequest.requestedAt)} by{" "}
-										{selectedRequest.requestedBy?.username}
-									</li>
-								)}
-								{selectedRequest.sentAt && (
-									<li>
-										<strong>Sent:</strong> {formatDate(selectedRequest.sentAt)}{" "}
-										by {selectedRequest.sentBy?.username}
-									</li>
-								)}
-								{selectedRequest.completedAt && (
-									<li>
-										<strong>Completed:</strong>{" "}
-										{formatDate(selectedRequest.completedAt)} by{" "}
-										{selectedRequest.completedBy?.username}
-									</li>
-								)}
-								{selectedRequest.closedAt && (
-									<li>
-										<strong>Closed:</strong>{" "}
-										{formatDate(selectedRequest.closedAt)} by{" "}
-										{selectedRequest.closedBy?.username}
-										{selectedRequest.closeReason && (
-											<>
-												<br />
-												<em>Reason: {selectedRequest.closeReason}</em>
-											</>
+							{/* Timeline Section */}
+							<Card className="mb-3">
+								<Card.Header
+									style={{ backgroundColor: "#e8f5e9", fontWeight: "600" }}
+								>
+									Timeline
+								</Card.Header>
+								<Card.Body>
+									<div
+										style={{
+											borderLeft: "3px solid #dee2e6",
+											paddingLeft: "1.5rem",
+										}}
+									>
+										<div className="mb-3">
+											<Badge bg="secondary" className="mb-1">
+												CREATED
+											</Badge>
+											<div>
+												{formatDate(selectedRequest.createdAt)} by{" "}
+												<strong>{selectedRequest.createdBy?.username}</strong>
+											</div>
+										</div>
+										{selectedRequest.requestedAt && (
+											<div className="mb-3">
+												<Badge bg="info" className="mb-1">
+													REQUESTED
+												</Badge>
+												<div>
+													{formatDate(selectedRequest.requestedAt)} by{" "}
+													<strong>
+														{selectedRequest.requestedBy?.username}
+													</strong>
+												</div>
+											</div>
 										)}
-									</li>
-								)}
-							</ul>
+										{selectedRequest.sentAt && (
+											<div className="mb-3">
+												<Badge bg="warning" className="mb-1">
+													SENT
+												</Badge>
+												<div>
+													{formatDate(selectedRequest.sentAt)} by{" "}
+													<strong>{selectedRequest.sentBy?.username}</strong>
+												</div>
+											</div>
+										)}
+										{selectedRequest.completedAt && (
+											<div className="mb-3">
+												<Badge bg="success" className="mb-1">
+													COMPLETED
+												</Badge>
+												<div>
+													{formatDate(selectedRequest.completedAt)} by{" "}
+													<strong>
+														{selectedRequest.completedBy?.username}
+													</strong>
+												</div>
+											</div>
+										)}
+										{selectedRequest.closedAt && (
+											<div className="mb-3">
+												<Badge bg="danger" className="mb-1">
+													CLOSED
+												</Badge>
+												<div>
+													{formatDate(selectedRequest.closedAt)} by{" "}
+													<strong>{selectedRequest.closedBy?.username}</strong>
+													{selectedRequest.closeReason && (
+														<div
+															className="mt-1 p-2"
+															style={{
+																backgroundColor: "#f8d7da",
+																borderRadius: "4px",
+																fontSize: "0.9rem",
+															}}
+														>
+															<em>Reason: {selectedRequest.closeReason}</em>
+														</div>
+													)}
+												</div>
+											</div>
+										)}
+									</div>
+								</Card.Body>
+							</Card>
 
 							{/* Status Transition Buttons */}
-							<div className="mt-4">
-								<h5>Actions</h5>
-								{selectedRequest.status === "open" &&
-									canTransitionTo(selectedRequest, "requested") && (
-										<Button
-											variant="info"
-											className="me-2"
-											onClick={() => openStatusModal("requested")}
-										>
-											Submit Request
-										</Button>
-									)}
-								{selectedRequest.status === "requested" &&
-									canTransitionTo(selectedRequest, "sent") && (
-										<Button
-											variant="warning"
-											className="me-2"
-											onClick={() => openStatusModal("sent")}
-										>
-											Mark as Sent
-										</Button>
-									)}
-								{selectedRequest.status === "sent" &&
-									canTransitionTo(selectedRequest, "complete") && (
-										<Button
-											variant="success"
-											className="me-2"
-											onClick={() => openStatusModal("complete")}
-										>
-											Confirm Receipt
-										</Button>
-									)}
-								{canTransitionTo(selectedRequest, "closed") &&
-									selectedRequest.status !== "complete" &&
-									selectedRequest.status !== "closed" && (
-										<Button
-											variant="danger"
-											onClick={() => openStatusModal("closed")}
-										>
-											Close Request
-										</Button>
-									)}
-							</div>
+							<Card>
+								<Card.Header
+									style={{ backgroundColor: "#fff3cd", fontWeight: "600" }}
+								>
+									Available Actions
+								</Card.Header>
+								<Card.Body>
+									<div className="d-flex flex-wrap gap-2">
+										{selectedRequest.status === "open" &&
+											canTransitionTo(selectedRequest, "requested") && (
+												<Button
+													variant="info"
+													onClick={() => openStatusModal("requested")}
+													style={{ fontWeight: "500" }}
+												>
+													📝 Submit Request
+												</Button>
+											)}
+										{selectedRequest.status === "requested" &&
+											canTransitionTo(selectedRequest, "sent") && (
+												<Button
+													variant="warning"
+													onClick={() => openStatusModal("sent")}
+													style={{ fontWeight: "500" }}
+												>
+													📦 Mark as Sent
+												</Button>
+											)}
+										{selectedRequest.status === "sent" &&
+											canTransitionTo(selectedRequest, "complete") && (
+												<Button
+													variant="success"
+													onClick={() => openStatusModal("complete")}
+													style={{ fontWeight: "500" }}
+												>
+													✅ Confirm Receipt
+												</Button>
+											)}
+										{canTransitionTo(selectedRequest, "closed") &&
+											selectedRequest.status !== "complete" &&
+											selectedRequest.status !== "closed" && (
+												<Button
+													variant="danger"
+													onClick={() => openStatusModal("closed")}
+													style={{ fontWeight: "500" }}
+												>
+													❌ Close Request
+												</Button>
+											)}
+										{!canTransitionTo(selectedRequest, "requested") &&
+											!canTransitionTo(selectedRequest, "sent") &&
+											!canTransitionTo(selectedRequest, "complete") &&
+											(!canTransitionTo(selectedRequest, "closed") ||
+												selectedRequest.status === "complete" ||
+												selectedRequest.status === "closed") && (
+												<div className="text-muted">
+													No actions available for this request
+												</div>
+											)}
+									</div>
+								</Card.Body>
+							</Card>
 						</>
 					) : null}
 				</Modal.Body>

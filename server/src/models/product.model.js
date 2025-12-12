@@ -126,8 +126,8 @@ productSchema.index({ productType: 1, brand: 1 });
 productSchema.index({ brand: 1, isActive: 1 });
 productSchema.index({ productType: 1, isActive: 1 });
 
-// Text index for search functionality
-productSchema.index({ name: "text", description: "text" });
+// Text index for search functionality (searches name, SKU, and description)
+productSchema.index({ name: "text", sku: "text", description: "text" });
 
 // Validation: Cards must have unitSize of 0, non-cards cannot have cardDetails
 productSchema.pre("save", function () {

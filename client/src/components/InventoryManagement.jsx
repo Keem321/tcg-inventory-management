@@ -23,6 +23,7 @@ import { productAPI } from "../api/products";
 import CreateInventoryModal from "./modals/CreateInventoryModal";
 import UpdateInventoryModal from "./modals/UpdateInventoryModal";
 import DeleteInventoryModal from "./modals/DeleteInventoryModal";
+import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "../constants/enums";
 import { useDebounce } from "../hooks";
 
 /**
@@ -45,6 +46,8 @@ function InventoryManagement({ user }) {
 	// Filters
 	const [selectedStore, setSelectedStore] = useState("");
 	const [locationFilter, setLocationFilter] = useState("all"); // all, floor, back
+	const [productTypeFilter, setProductTypeFilter] = useState("");
+	const [brandFilter, setBrandFilter] = useState("");
 	const [searchTerm, setSearchTerm] = useState("");
 	const debouncedSearchTerm = useDebounce(searchTerm, 300, 2);
 
@@ -56,6 +59,7 @@ function InventoryManagement({ user }) {
 
 	// Create form
 	const [products, setProducts] = useState([]);
+	const [brands, setBrands] = useState([]);
 	const [productSearch, setProductSearch] = useState("");
 	const [selectedProduct, setSelectedProduct] = useState(null);
 	const [newInventory, setNewInventory] = useState({
@@ -161,6 +165,19 @@ function InventoryManagement({ user }) {
 		loadStoresAndInventory();
 	}, [loadStoresAndInventory]);
 
+	// Load brands on mount
+	useEffect(() => {
+		const loadBrands = async () => {
+			try {
+				const response = await productAPI.getBrands();
+				setBrands(response.brands);
+			} catch (err) {
+				console.error("Error loading brands:", err);
+			}
+		};
+		loadBrands();
+	}, []);
+
 	// Reload inventory when filters change or when selectedStore is first set
 	useEffect(() => {
 		// Don't load if still loading stores, or if no store selected
@@ -193,8 +210,22 @@ function InventoryManagement({ user }) {
 		user?.assignedStoreId,
 	]);
 
-	// Filter inventory by search term (debounced)
+	// Filter inventory by search term, product type, and brand
 	const filteredInventory = inventory.filter((item) => {
+		// Product type filter
+		if (
+			productTypeFilter &&
+			item.productId?.productType !== productTypeFilter
+		) {
+			return false;
+		}
+
+		// Brand filter
+		if (brandFilter && item.productId?.brand !== brandFilter) {
+			return false;
+		}
+
+		// Search filter
 		if (!debouncedSearchTerm) return true;
 
 		const search = debouncedSearchTerm.toLowerCase();
@@ -211,6 +242,14 @@ function InventoryManagement({ user }) {
 			containerName.includes(search)
 		);
 	});
+
+	// Product types for filter
+	const productTypes = Object.values(PRODUCT_TYPES);
+
+	// Format product type for display
+	const formatProductType = (type) => {
+		return PRODUCT_TYPE_LABELS[type] || type;
+	};
 
 	// Get store name by ID
 	const getStoreName = (storeId) => {
@@ -503,7 +542,7 @@ function InventoryManagement({ user }) {
 					<Row>
 						{/* Store Selector (Partners only) */}
 						{isPartner && (
-							<Col md={4} className="mb-3">
+							<Col md={3} className="mb-3">
 								<Form.Group>
 									<Form.Label>Store</Form.Label>
 									<Form.Select
@@ -521,8 +560,44 @@ function InventoryManagement({ user }) {
 							</Col>
 						)}
 
+						{/* Product Type Filter */}
+						<Col md={isPartner ? 3 : 4} className="mb-3">
+							<Form.Group>
+								<Form.Label>Product Type</Form.Label>
+								<Form.Select
+									value={productTypeFilter}
+									onChange={(e) => setProductTypeFilter(e.target.value)}
+								>
+									<option value="">All Types</option>
+									{productTypes.map((type) => (
+										<option key={type} value={type}>
+											{formatProductType(type)}
+										</option>
+									))}
+								</Form.Select>
+							</Form.Group>
+						</Col>
+
+						{/* Brand Filter */}
+						<Col md={isPartner ? 3 : 4} className="mb-3">
+							<Form.Group>
+								<Form.Label>Brand</Form.Label>
+								<Form.Select
+									value={brandFilter}
+									onChange={(e) => setBrandFilter(e.target.value)}
+								>
+									<option value="">All Brands</option>
+									{brands.map((brand) => (
+										<option key={brand} value={brand}>
+											{brand}
+										</option>
+									))}
+								</Form.Select>
+							</Form.Group>
+						</Col>
+
 						{/* Location Filter */}
-						<Col md={4} className="mb-3">
+						<Col md={isPartner ? 3 : 4} className="mb-3">
 							<Form.Group>
 								<Form.Label>Location</Form.Label>
 								<ButtonGroup className="d-block">
@@ -553,9 +628,10 @@ function InventoryManagement({ user }) {
 								</ButtonGroup>
 							</Form.Group>
 						</Col>
-
+					</Row>
+					<Row>
 						{/* Search */}
-						<Col md={4} className="mb-3">
+						<Col md={12} className="mb-3">
 							<Form.Group>
 								<Form.Label>Search</Form.Label>
 								<Form.Control
@@ -599,18 +675,37 @@ function InventoryManagement({ user }) {
 						</Alert>
 					) : (
 						<div className="table-responsive">
-							<Table striped hover>
+							<Table
+								hover
+								style={{ borderCollapse: "separate", borderSpacing: "0 4px" }}
+							>
 								<thead>
 									<tr>
-										{isPartner && selectedStore === "all" && <th>Store</th>}
-										<th>Product</th>
-										<th>SKU</th>
-										<th>Type</th>
-										<th>Location</th>
-										<th>Quantity</th>
-										<th>Min Stock</th>
-										<th>Status</th>
-										<th>Actions</th>
+										{isPartner && selectedStore === "all" && (
+											<th style={{ borderBottom: "2px solid #dee2e6" }}>
+												Store
+											</th>
+										)}
+										<th style={{ borderBottom: "2px solid #dee2e6" }}>
+											Product
+										</th>
+										<th style={{ borderBottom: "2px solid #dee2e6" }}>SKU</th>
+										<th style={{ borderBottom: "2px solid #dee2e6" }}>Type</th>
+										<th style={{ borderBottom: "2px solid #dee2e6" }}>
+											Location
+										</th>
+										<th style={{ borderBottom: "2px solid #dee2e6" }}>
+											Quantity
+										</th>
+										<th style={{ borderBottom: "2px solid #dee2e6" }}>
+											Min Stock
+										</th>
+										<th style={{ borderBottom: "2px solid #dee2e6" }}>
+											Status
+										</th>
+										<th style={{ borderBottom: "2px solid #dee2e6" }}>
+											Actions
+										</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -624,19 +719,62 @@ function InventoryManagement({ user }) {
 										// For containers, return container row + nested card rows
 										if (isContainer) {
 											const cards = item.cardContainer?.cardInventory || [];
+											const containerColors = {
+												border: "#8b5cf6",
+												bg: "#f3e8ff",
+												nested: "#faf5ff",
+											};
+
 											return (
 												<>
 													{/* Container Header Row */}
-													<tr key={item._id} className="table-secondary">
+													<tr
+														key={item._id}
+														style={{
+															borderLeft: `4px solid ${containerColors.border}`,
+														}}
+													>
 														{isPartner && selectedStore === "all" && (
-															<td>{item.storeId?.name || "N/A"}</td>
+															<td
+																style={{
+																	verticalAlign: "middle",
+																	padding: "1rem 0.75rem",
+																	backgroundColor: containerColors.bg,
+																	fontWeight: "500",
+																}}
+															>
+																{item.storeId?.name || "N/A"}
+															</td>
 														)}
-														<td>
-															<strong>
-																📦 {item.cardContainer.containerName}
+														<td
+															style={{
+																verticalAlign: "middle",
+																padding: "1rem 0.75rem",
+																backgroundColor: containerColors.bg,
+															}}
+														>
+															<div
+																style={{
+																	fontSize: "1.5rem",
+																	display: "inline-block",
+																	marginRight: "0.5rem",
+																}}
+															>
+																📦
+															</div>
+															<strong
+																style={{
+																	fontSize: "1.05rem",
+																	color: containerColors.border,
+																}}
+															>
+																{item.cardContainer.containerName}
 															</strong>
 															<br />
-															<small className="text-muted">
+															<small
+																className="text-muted"
+																style={{ fontSize: "0.85rem" }}
+															>
 																{item.cardContainer.containerType
 																	.replace("-", " ")
 																	.replace(/\b\w/g, (l) =>
@@ -646,42 +784,97 @@ function InventoryManagement({ user }) {
 																{item.uniqueCardTypes} types
 															</small>
 														</td>
-														<td>
-															<Badge bg="secondary">Container</Badge>
+														<td
+															style={{
+																verticalAlign: "middle",
+																padding: "1rem 0.75rem",
+																backgroundColor: containerColors.bg,
+															}}
+														>
+															<Badge
+																bg="secondary"
+																style={{
+																	fontSize: "0.85rem",
+																	padding: "0.4rem 0.8rem",
+																}}
+															>
+																Container
+															</Badge>
 														</td>
-														<td>Card Container</td>
-														<td>
+														<td
+															style={{
+																verticalAlign: "middle",
+																padding: "1rem 0.75rem",
+																backgroundColor: containerColors.bg,
+																fontWeight: "500",
+															}}
+														>
+															Card Container
+														</td>
+														<td
+															style={{
+																verticalAlign: "middle",
+																padding: "1rem 0.75rem",
+																backgroundColor: containerColors.bg,
+															}}
+														>
 															<Badge
 																bg={
 																	item.location === "floor"
 																		? "success"
 																		: "warning"
 																}
+																style={{
+																	fontSize: "0.85rem",
+																	padding: "0.4rem 0.8rem",
+																}}
 															>
 																{item.location === "floor" ? "Floor" : "Back"}
 															</Badge>
 														</td>
-														<td colSpan="2" className="text-muted">
+														<td
+															colSpan="2"
+															style={{
+																verticalAlign: "middle",
+																padding: "1rem 0.75rem",
+																backgroundColor: containerColors.bg,
+																color: "#6c757d",
+															}}
+														>
 															<small>Contains {cards.length} card types</small>
 														</td>
-														<td>
+														<td
+															style={{
+																verticalAlign: "middle",
+																padding: "1rem 0.75rem",
+																backgroundColor: containerColors.bg,
+															}}
+														>
 															{item.isActive ? (
 																<Badge bg="success">Active</Badge>
 															) : (
 																<Badge bg="secondary">Inactive</Badge>
 															)}
 														</td>
-														<td>
+														<td
+															style={{
+																verticalAlign: "middle",
+																padding: "1rem 0.75rem",
+																backgroundColor: containerColors.bg,
+															}}
+														>
 															<ButtonGroup size="sm">
 																<Button
 																	variant="outline-primary"
 																	onClick={() => handleOpenUpdateModal(item)}
+																	style={{ fontWeight: "500" }}
 																>
 																	Edit
 																</Button>
 																<Button
 																	variant="outline-danger"
 																	onClick={() => handleOpenDeleteModal(item)}
+																	style={{ fontWeight: "500" }}
 																>
 																	Delete
 																</Button>
@@ -692,29 +885,105 @@ function InventoryManagement({ user }) {
 													{cards.map((card, idx) => (
 														<tr
 															key={`${item._id}-card-${idx}`}
-															className="table-light"
+															style={{
+																borderLeft: `4px solid ${containerColors.border}`,
+															}}
 														>
 															{isPartner && selectedStore === "all" && (
-																<td></td>
+																<td
+																	style={{
+																		padding: "0.5rem 0.75rem",
+																		backgroundColor: containerColors.nested,
+																	}}
+																></td>
 															)}
-															<td className="ps-5">
-																<small>
-																	↳ {card.productId?.name || "Unknown Card"}
+															<td
+																style={{
+																	paddingLeft: "3rem",
+																	padding: "0.5rem 0.75rem 0.5rem 3rem",
+																	backgroundColor: containerColors.nested,
+																}}
+															>
+																<small
+																	style={{
+																		fontSize: "0.9rem",
+																		color: "#495057",
+																	}}
+																>
+																	<span
+																		style={{
+																			color: containerColors.border,
+																			marginRight: "0.25rem",
+																		}}
+																	>
+																		↳
+																	</span>{" "}
+																	{card.productId?.name || "Unknown Card"}
 																</small>
 															</td>
-															<td>
-																<small>{card.productId?.sku || "N/A"}</small>
+															<td
+																style={{
+																	padding: "0.5rem 0.75rem",
+																	backgroundColor: containerColors.nested,
+																}}
+															>
+																<small style={{ fontSize: "0.85rem" }}>
+																	<code>{card.productId?.sku || "N/A"}</code>
+																</small>
 															</td>
-															<td>
-																<small>Single Card</small>
+															<td
+																style={{
+																	padding: "0.5rem 0.75rem",
+																	backgroundColor: containerColors.nested,
+																}}
+															>
+																<small
+																	style={{
+																		fontSize: "0.85rem",
+																		color: "#6c757d",
+																	}}
+																>
+																	Single Card
+																</small>
 															</td>
-															<td></td>
-															<td>
-																<small>{card.quantity}</small>
+															<td
+																style={{
+																	padding: "0.5rem 0.75rem",
+																	backgroundColor: containerColors.nested,
+																}}
+															></td>
+															<td
+																style={{
+																	padding: "0.5rem 0.75rem",
+																	backgroundColor: containerColors.nested,
+																}}
+															>
+																<Badge
+																	bg="info"
+																	pill
+																	style={{ fontSize: "0.85rem" }}
+																>
+																	{card.quantity}
+																</Badge>
 															</td>
-															<td></td>
-															<td></td>
-															<td></td>
+															<td
+																style={{
+																	padding: "0.5rem 0.75rem",
+																	backgroundColor: containerColors.nested,
+																}}
+															></td>
+															<td
+																style={{
+																	padding: "0.5rem 0.75rem",
+																	backgroundColor: containerColors.nested,
+																}}
+															></td>
+															<td
+																style={{
+																	padding: "0.5rem 0.75rem",
+																	backgroundColor: containerColors.nested,
+																}}
+															></td>
 														</tr>
 													))}
 												</>
@@ -722,56 +991,154 @@ function InventoryManagement({ user }) {
 										}
 
 										// Regular product row
+										const locationColors = {
+											floor: { border: "#198754", bg: "#d1e7dd" },
+											back: { border: "#ffc107", bg: "#fff8e1" },
+										};
+										const colors =
+											locationColors[item.location] || locationColors.floor;
+
 										return (
-											<tr key={item._id}>
+											<tr
+												key={item._id}
+												style={{ borderLeft: `4px solid ${colors.border}` }}
+											>
 												{isPartner && selectedStore === "all" && (
-													<td>{item.storeId?.name || "N/A"}</td>
+													<td
+														style={{
+															verticalAlign: "middle",
+															padding: "1rem 0.75rem",
+															backgroundColor: colors.bg,
+															fontWeight: "500",
+														}}
+													>
+														{item.storeId?.name || "N/A"}
+													</td>
 												)}
-												<td>
-													<strong>{item.productId?.name || "N/A"}</strong>
-													<br />
-													<small className="text-muted">
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+													}}
+												>
+													<div
+														style={{ fontSize: "1.05rem", fontWeight: "600" }}
+													>
+														{item.productId?.name || "N/A"}
+													</div>
+													<small
+														className="text-muted"
+														style={{ fontSize: "0.85rem" }}
+													>
 														{item.productId?.brand || "N/A"}
 													</small>
 												</td>
-												<td>{item.productId?.sku || "N/A"}</td>
-												<td>{item.productId?.productType || "N/A"}</td>
-												<td>
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+													}}
+												>
+													<code style={{ fontSize: "0.9rem" }}>
+														{item.productId?.sku || "N/A"}
+													</code>
+												</td>
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+														fontSize: "0.9rem",
+													}}
+												>
+													{item.productId?.productType || "N/A"}
+												</td>
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+													}}
+												>
 													<Badge
 														bg={
 															item.location === "floor" ? "success" : "warning"
 														}
+														style={{
+															fontSize: "0.85rem",
+															padding: "0.4rem 0.8rem",
+														}}
 													>
 														{item.location === "floor" ? "Floor" : "Back"}
 													</Badge>
 												</td>
-												<td>
-													{item.quantity}
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+													}}
+												>
+													<span
+														style={{
+															fontSize: "1.1rem",
+															fontWeight: "600",
+															color: isLowStock ? "#dc3545" : "#212529",
+														}}
+													>
+														{item.quantity}
+													</span>
 													{isLowStock && (
 														<Badge bg="danger" className="ms-2">
-															Low
+															Low Stock
 														</Badge>
 													)}
 												</td>
-												<td>{item.minStockLevel}</td>
-												<td>
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+														fontSize: "0.95rem",
+														color: "#6c757d",
+													}}
+												>
+													{item.minStockLevel}
+												</td>
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+													}}
+												>
 													{item.isActive ? (
 														<Badge bg="success">Active</Badge>
 													) : (
 														<Badge bg="secondary">Inactive</Badge>
 													)}
 												</td>
-												<td>
+												<td
+													style={{
+														verticalAlign: "middle",
+														padding: "1rem 0.75rem",
+														backgroundColor: colors.bg,
+													}}
+												>
 													<ButtonGroup size="sm">
 														<Button
 															variant="outline-primary"
 															onClick={() => handleOpenUpdateModal(item)}
+															style={{ fontWeight: "500" }}
 														>
 															Edit
 														</Button>
 														<Button
 															variant="outline-danger"
 															onClick={() => handleOpenDeleteModal(item)}
+															style={{ fontWeight: "500" }}
 														>
 															Delete
 														</Button>

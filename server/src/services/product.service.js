@@ -14,7 +14,7 @@ const { LOCATIONS } = require("../constants/enums");
  * @param {string} [filters.productType] - Filter by product type
  * @param {string} [filters.brand] - Filter by brand name
  * @param {boolean|string} [filters.isActive] - Filter by active status
- * @param {string} [filters.search] - Search term for name/SKU
+ * @param {string} [filters.search] - Search term for name, SKU, or description
  * @returns {Promise<Array>} Array of product documents
  */
 exports.getAllProducts = async (filters = {}) => {
